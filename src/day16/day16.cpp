@@ -4,15 +4,16 @@
 #include <ctre.hpp>
 #include <fmt/format.h>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <map>
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/algorithm/max.hpp>
+#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
 #include <range/v3/view/transform.hpp>
 #include <string>
-#include <string_view>
 #include <vector>
 
 using DistMap       = std::vector<std::vector<int>>;
@@ -38,17 +39,19 @@ void add_to_map(std::vector<Valve>& t_map, std::string const& t_str, std::map<st
   auto const neighbor_str = split_string(valve.get<3>().to_string(), ' ');
 
   if (not t_str_to_idx.contains(name)) {
-    t_str_to_idx.insert({name, t_str_to_idx.size()});
+    t_str_to_idx[name] = t_map.size();
+    t_map.emplace_back(name, flow_rate);
+  } else {
+    t_map[t_str_to_idx.at(name)].flow_rate_ = flow_rate;
   }
 
-  auto& new_valve = t_map.emplace_back(name, flow_rate);
   for (auto neighbor : neighbor_str) {
     auto n = neighbor.substr(0, 2);
     if (not t_str_to_idx.contains(n)) {
-      t_str_to_idx.insert({n, t_str_to_idx.size()});
+      t_str_to_idx[n] = t_map.size();
+      t_map.emplace_back(n, 0);
     }
-
-    new_valve.neighbor_.push_back(t_str_to_idx.at(n));
+    t_map[t_str_to_idx.at(name)].neighbor_.push_back(t_str_to_idx.at(n));
   }
 }
 
@@ -86,10 +89,9 @@ void traveling_salesman_problem(Valve const& t_start, std::map<std::string, std:
                                 std::vector<Valve> const& t_valves, DistMap const& t_graph, int const t_time_left,
                                 std::size_t const t_valve_state, std::size_t const t_flow,
                                 StateBestFlow& t_valve_state_best_output) {
-  using ranges::views::filter;
-  t_valve_state_best_output[t_valve_state] = std::max(t_valve_state_best_output[t_valve_state], t_flow);
+  t_valve_state_best_output.at(t_valve_state) = std::max(t_valve_state_best_output[t_valve_state], t_flow);
 
-  for (auto&& valve : t_valves | filter([](auto&& t_f) { return t_f > 0; }, &Valve::get_flow_rate)) {
+  for (auto&& valve : t_valves) {
     auto const time_left = t_time_left - t_graph[t_idx_map.at(t_start.name_)][t_idx_map.at(valve.name_)] - 1;
     auto const pos       = 1UL << t_idx_map.at(valve.name_);
     if ((t_valve_state & pos) or  // this path is meaningless (opened already), proceed to next one
@@ -104,7 +106,7 @@ void traveling_salesman_problem(Valve const& t_start, std::map<std::string, std:
 }
 
 void part1() {
-  using ranges::getlines, ranges::max, ranges::views::transform;
+  using ranges::getlines, ranges::max, ranges::views::transform, ranges::views::filter, ranges::to_vector;
 
   std::fstream in((INPUT_FILE));
   auto rng = getlines(in);
@@ -116,18 +118,45 @@ void part1() {
     add_to_map(map, str, idx_map);
   }
 
+  auto const non_zero_flow_valve = map | filter([](auto&& t_f) { return t_f > 0; }, &Valve::get_flow_rate) | to_vector;
+
   StateBestFlow answer;
   auto const dist_map = generate_shortest_path_matrix(map, idx_map);
-  traveling_salesman_problem(map[idx_map.at("AA")], idx_map, map, dist_map, 30, 0, 0, answer);
+
+  traveling_salesman_problem(map[idx_map.at("AA")], idx_map, non_zero_flow_valve, dist_map, 30, 0, 0, answer);
 
   fmt::print("best result: {}\n", max(answer | transform([](auto&& t_pair) { return t_pair.second; })));
 }
 
 void part2() {
-  using ranges::getlines;
+  using ranges::getlines, ranges::views::filter, ranges::to_vector;
 
   std::fstream in((INPUT_FILE));
   auto rng = getlines(in);
+
+  std::vector<Valve> map;
+  std::map<std::string, std::size_t> idx_map;
+
+  for (auto&& str : rng) {
+    add_to_map(map, str, idx_map);
+  }
+
+  auto const non_zero_flow_valve = map | filter([](auto&& t_f) { return t_f > 0; }, &Valve::get_flow_rate) | to_vector;
+
+  StateBestFlow answer;
+  auto const dist_map = generate_shortest_path_matrix(map, idx_map);
+  traveling_salesman_problem(map[idx_map.at("AA")], idx_map, non_zero_flow_valve, dist_map, 26, 0, 0, answer);
+
+  auto result = std::numeric_limits<std::size_t>::min();
+  for (auto&& [my_state, my_flow] : answer) {
+    for (auto&& [elephant_state, elephant_flow] : answer) {
+      if ((my_state & elephant_state) == 0 and result < my_flow + elephant_flow) {
+        result = my_flow + elephant_flow;
+      }
+    }
+  }
+
+  fmt::print("best result with elephant: {}\n", result);
 }
 
 int main(int /**/, char** /**/) {
