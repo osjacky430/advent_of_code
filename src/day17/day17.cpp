@@ -98,7 +98,7 @@ struct Chamber {
         this->content_.emplace_back();
       }
 
-      this->content_[offset_y] |= (1 << offset_x);
+      this->content_[offset_y] |= static_cast<std::uint8_t>(1U << offset_x);
     }
   }
 
