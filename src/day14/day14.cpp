@@ -13,7 +13,6 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
 #include <range/v3/view/join.hpp>
-#include <range/v3/view/split_when.hpp>
 #include <range/v3/view/transform.hpp>
 #include <string>
 
