@@ -14,6 +14,7 @@
 #include <range/v3/view/getlines.hpp>
 #include <range/v3/view/transform.hpp>
 #include <set>
+#include <utility>
 
 struct Elf;
 
@@ -27,11 +28,11 @@ struct Elf {
   DirPred predicate_        = {nullptr, nullptr};
   Coor coor_;
 
-  Coor get_coor() const noexcept { return this->coor_; }
+  [[nodiscard]] Coor get_coor() const noexcept { return this->coor_; }
 
   bool operator==(Elf const& t_elf) const noexcept { return this->coor_ == t_elf.coor_; }
 
-  Elf(Coor t_coor) : coor_(t_coor) {}
+  explicit Elf(Coor t_coor) : coor_(std::move(t_coor)) {}
 };
 
 template <char Dir>
