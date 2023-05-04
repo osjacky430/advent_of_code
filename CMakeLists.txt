@@ -18,7 +18,7 @@ configure_project_option(
     DISABLE_FOR_CONFIG Debug Coverage
   PROJ_TARGET
     TARGET advent_of_code_2022
-    CXX_STD 20
+    CXX_STD 23
 )
 # cmake-format: on
 

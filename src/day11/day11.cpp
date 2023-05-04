@@ -20,9 +20,9 @@ struct Monkey {
   long long unsigned dividend_ = 3;
   std::deque<long long unsigned> items_;
   std::pair<char, long long unsigned> operation_;
-  long long unsigned test_;
+  long long unsigned test_ = 0;
 
-  std::array<int, 2> recipient_;
+  std::array<int, 2> recipient_{};
 
   long long inspected_time_ = 0;
 

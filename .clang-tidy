@@ -1,5 +1,5 @@
 ---
-Checks:          '*,-fuchsia-*,-google-*,-zircon-*,-abseil-*,-modernize-use-trailing-return-type,-llvm*,-altera*,-misc-non-private-member-variables-in-classes,-readability-function-cognitive-complexity,-misc-no-recursion,-readability-identifier-length,-bugprone-easily-swappable-parameters'
+Checks:          '*,-fuchsia-*,-google-*,-zircon-*,-abseil-*,-modernize-use-trailing-return-type,-llvm*,-altera*,-misc-non-private-member-variables-in-classes,-readability-function-cognitive-complexity,-misc-no-recursion,-readability-identifier-length,-bugprone-easily-swappable-parameters,-cppcoreguidelines-pro-bounds-constant-array-index'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 FormatStyle:     none

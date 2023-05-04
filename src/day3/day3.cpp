@@ -85,7 +85,7 @@ void part2() {
     fill(marker, true);
 
     for_each(t_in, [&](auto&& t_str) {
-      std::array<bool, 52> filter;
+      std::array<bool, 52> filter{};
       fill(filter, false);
       for (auto const chr : t_str) {
         auto const idx = [=]() {
@@ -101,7 +101,7 @@ void part2() {
         }
       }
 
-      marker = std::move(filter);
+      marker = filter;
     });
 
     auto const badge_pos = static_cast<std::size_t>(find(marker, true) - marker.begin());

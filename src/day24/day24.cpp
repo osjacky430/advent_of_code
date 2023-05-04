@@ -25,9 +25,14 @@ using Coor = std::pair<std::size_t, std::size_t>;
 
 // wanna try something I usually don't do
 struct BlizzardBase {
-  virtual char get_sign() const noexcept        = 0;
-  virtual void move()                           = 0;
-  virtual Coor get_current_pos() const noexcept = 0;
+  [[nodiscard]] BlizzardBase(const BlizzardBase&) = default;
+  BlizzardBase(BlizzardBase&&)                    = delete;
+  BlizzardBase& operator=(const BlizzardBase&)    = default;
+  BlizzardBase& operator=(BlizzardBase&&)         = delete;
+
+  [[nodiscard]] virtual char get_sign() const noexcept        = 0;
+  virtual void move()                                         = 0;
+  [[nodiscard]] virtual Coor get_current_pos() const noexcept = 0;
 
   virtual ~BlizzardBase() = default;
 };
@@ -37,10 +42,10 @@ struct Blizzard final : BlizzardBase {
   using Cycle     = ranges::cycled_view<Rng>;
   using CycleIter = decltype(begin((Cycle())));
 
-  char get_sign() const noexcept override { return this->sign_; }
+  [[nodiscard]] char get_sign() const noexcept override { return this->sign_; }
   void move() override { ++this->moving_coor_; }
 
-  Coor get_current_pos() const noexcept override {
+  [[nodiscard]] Coor get_current_pos() const noexcept override {
     auto&& [x, y] = *this->moving_coor_;
     return Coor{x, y};
   }
@@ -225,7 +230,7 @@ class MoveSimulator {
     this->history_.clear();
   }
 
-  auto get_result() const noexcept { return this->current_min_; }
+  [[nodiscard]] auto get_result() const noexcept { return this->current_min_; }
 
   void simulate(Coor const t_current_pos, Coor const t_exit_pos, std::size_t const t_current_time = 1) {
     using ranges::views::indirect, ranges::views::transform, ranges::views::filter, ranges::to_vector, ranges::find_if,
@@ -277,8 +282,8 @@ class MoveSimulator {
   }
 };
 
-void debug_blizzard(std::vector<std::string> const& t_map, std::vector<std::shared_ptr<BlizzardBase>> t_blizzards,
-                    std::size_t const t_turns) {
+void debug_blizzard(std::vector<std::string> const& t_map,
+                    std::vector<std::shared_ptr<BlizzardBase>> const& t_blizzards, std::size_t const t_turns) {
   using ranges::for_each, ranges::views::indirect;
 
   for (std::size_t k = 0; k < t_turns; ++k) {

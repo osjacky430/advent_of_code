@@ -44,9 +44,9 @@ void part2() {
              | split("")  //
              | transform([](auto&& t_calories) {
                  return accumulate(t_calories, 0, [](auto&& t_v, auto&& t_in) { return t_v + std::stoi(t_in); });
-               })                          //
-             | to_vector                   //
-             | sort(std::greater<int>());  // partial_sort will be better!
+               })                       //
+             | to_vector                //
+             | sort(std::greater<>());  // partial_sort will be better!
 
   auto sum_of_greatest_3 = accumulate(rng | take(3), 0);
   fmt::print("sum of greatest 3: {}\n", sum_of_greatest_3);
