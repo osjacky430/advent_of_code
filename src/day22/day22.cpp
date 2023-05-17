@@ -4,6 +4,7 @@
 #include <cmath>
 #include <fmt/format.h>
 #include <fstream>
+#include <numeric>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/algorithm/max.hpp>

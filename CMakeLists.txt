@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 project(advent_of_code_2022)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${CMAKE_BINARY_DIR}")
@@ -18,7 +18,6 @@ configure_project_option(
     DISABLE_FOR_CONFIG Debug Coverage
   PROJ_TARGET
     TARGET advent_of_code_2022
-    CXX_STD 23
 )
 # cmake-format: on
 

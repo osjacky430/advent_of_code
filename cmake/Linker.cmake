@@ -16,7 +16,8 @@ function (configure_linker)
   cmake_parse_arguments("" "" "${singleValueArgs}" "" ${ARGN})
 
   if (NOT _LINKER_NAME OR NOT _TARGET)
-    message(FATAL_ERROR "No linker or target specified!")
+    message(STATUS "No linker or target specified!")
+    return()
   endif ()
 
   include(CheckCXXCompilerFlag)

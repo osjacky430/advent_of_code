@@ -18,13 +18,13 @@
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
-#include <tuple>
 #include <utility>
 
 using Coor = std::pair<std::size_t, std::size_t>;
 
 // wanna try something I usually don't do
 struct BlizzardBase {
+  BlizzardBase()                                  = default;
   [[nodiscard]] BlizzardBase(const BlizzardBase&) = default;
   BlizzardBase(BlizzardBase&&)                    = delete;
   BlizzardBase& operator=(const BlizzardBase&)    = default;
@@ -101,7 +101,7 @@ auto parse_map(std::vector<std::shared_ptr<BlizzardBase>>& blizzards, std::vecto
             blizzards.emplace_back(std::make_shared<TDown>(v, zip(repeat(j), cycle(t_col) | drop(i - 1))));
             break;
           default:
-            break;
+            std::unreachable();
         }
       } else if (v == '.' and i + 1 == t_map.size()) {
         exit_pos = Coor(j, i);

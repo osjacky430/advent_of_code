@@ -7,7 +7,6 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/reverse.hpp>
 #include <range/v3/view/transform.hpp>
 #include <utility>
 
@@ -64,7 +63,7 @@ auto carry(int const t_value) {
   return std::pair{next_digit, current_value};
 }
 
-auto to_snafu(int const t_value) { return NUMBER_FORMAT.at(static_cast<std::size_t>(t_value + 2)); }
+auto to_snafu(int const t_value) { return NUMBER_FORMAT[static_cast<std::size_t>(t_value) + 2]; }
 
 void part1() {
   using ranges::getlines, ranges::views::transform, ranges::reverse, ranges::to_vector, ranges::max,
@@ -99,7 +98,7 @@ void part1() {
           current_digit -= 2;
           break;
         default:
-          throw std::runtime_error("invalid input");
+          std::unreachable();
       }
     }
   }
@@ -119,16 +118,8 @@ void part1() {
   fmt::print("{}\n", res | transform(to_snafu) | to<std::string>);
 }
 
-void part2() {
-  using ranges::getlines;
-
-  std::fstream in((INPUT_FILE));
-  auto rng = getlines(in);
-}
-
 int main(int /**/, char** /**/) {
   part1();
-  part2();
 
   return EXIT_SUCCESS;
 }

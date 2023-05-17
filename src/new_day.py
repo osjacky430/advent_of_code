@@ -7,7 +7,6 @@ CMAKELIST_TEXT = '''\
 add_executable({day} {day}.cpp)
 target_link_libraries({day} PRIVATE advent_of_code_2022 project_option project_warning fmt::fmt)
 target_compile_definitions({day} PRIVATE INPUT_FILE="${{CMAKE_CURRENT_SOURCE_DIR}}/{day}.txt")
-set_property(TARGET {day} PROPERTY BUILD_RPATH "/opt/gcc-11.1.0/lib64")
 '''
 
 TEMPLATE_CPP_FILE = '''\
