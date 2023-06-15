@@ -21,10 +21,11 @@ configure_project_option(
 )
 # cmake-format: on
 
+find_package(Microsoft.GSL CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(ctre REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(fmt REQUIRED)
 
-target_link_libraries(advent_of_code_2022 INTERFACE range-v3::range-v3)
+target_link_libraries(advent_of_code_2022 INTERFACE range-v3::range-v3 Microsoft.GSL::GSL)
 add_subdirectory(src)

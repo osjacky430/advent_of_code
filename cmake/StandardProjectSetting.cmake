@@ -4,7 +4,7 @@ include(Utility)
 
 function (config_debug_output)
   # we use directory property since we normally want ALL our diagnostic errors of the targets to be colored
-  add_compile_options($<$<AND:$<CXX_COMPILER_ID:GNU>,${MATCH_CLANG_COMPILER_ID_GENEX}>:-fdiagnostics-color=always>)
+  add_compile_options($<$<OR:$<CXX_COMPILER_ID:GNU>,${MATCH_CLANG_COMPILER_ID_GENEX}>:-fdiagnostics-color=always>)
   add_compile_options($<$<AND:$<CXX_COMPILER_ID:MSVC>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,19.00>>:/diagnostics:column>)
 endfunction ()
 

@@ -8,6 +8,7 @@ include(Sanitizers)
 include(Optimization)
 include(CompilerWarning)
 include(Coverage)
+include(Utility)
 
 function (configure_project_target)
   cmake_parse_arguments("" "" "TARGET;CXX_STD" "" ${ARGN})
@@ -38,6 +39,7 @@ function (configure_project_target)
     INTERFACE $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.14>>>:/external:W0 /external:anglebrackets>
               # vs 16.10 (19.29.30037) no longer need the /experimental:external flag to use the /external:*
               $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.29.30037>>:/experimental:external>)
+  target_compile_options(${_TARGET} INTERFACE $<$<OR:$<CXX_COMPILER_ID:GNU>,${MATCH_CLANG_COMPILER_ID_GENEX}>:-march=native>)
 endfunction ()
 
 function (configure_project_option)

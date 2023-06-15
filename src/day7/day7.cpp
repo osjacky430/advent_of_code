@@ -23,9 +23,9 @@ struct Node {
   Node() = default;
   Node(std::string t_dir_name, Node* t_parent) : name_(std::move(t_dir_name)), parent_(t_parent) {}
 
-  bool is_dir() const noexcept { return not this->children_.empty(); }
+  [[nodiscard]] bool is_dir() const noexcept { return not this->children_.empty(); }
 
-  bool is_file() const noexcept { return this->children_.empty(); }
+  [[nodiscard]] bool is_file() const noexcept { return this->children_.empty(); }
 
   void walk_node(auto&& t_func) const noexcept {
     t_func(this);
@@ -61,7 +61,7 @@ struct FileSystem {
   // assume the input doesn't go to same Node and ls, we just blindly append files and dirs
   void parse_ls_output(auto&& t_outputs) {
     auto* cwd = this->current_dir_;
-    for (auto output : t_outputs) {
+    for (auto&& output : t_outputs) {
       auto const content = split_string(output);
       auto& node         = cwd->children_.emplace_back(std::make_unique<Node>(content[1], cwd));
       if (content[0] != "dir") {
@@ -76,9 +76,9 @@ struct FileSystem {
     }
   }
 
-  auto get_used_disk_space() const noexcept { return this->root_dir_.size_; }
+  [[nodiscard]] auto get_used_disk_space() const noexcept { return this->root_dir_.size_; }
 
-  std::size_t get_smallest_size_greater_than_size(std::size_t const t_size) const noexcept {
+  [[nodiscard]] std::size_t size_ceil(std::size_t const t_size) const noexcept {
     std::size_t ret_val = std::numeric_limits<std::size_t>::max();
 
     this->root_dir_.walk_node([&](Node const* const t_n) {
@@ -90,7 +90,7 @@ struct FileSystem {
     return ret_val;
   }
 
-  std::size_t get_dir_size_sum_within_size(std::size_t const t_size) const noexcept {
+  [[nodiscard]] std::size_t get_dir_size_sum_within_size(std::size_t const t_size) const noexcept {
     std::size_t ret_val = 0;
 
     this->root_dir_.walk_node([&](Node const* const t_n) {
@@ -142,7 +142,7 @@ void part2() {
   auto const space_needed    = used_disk_space - (TOTAL_DISK_SPACE - UNUSED_SPACE_NEEDED);
 
   fmt::print("space needed: {}\n", space_needed);
-  fmt::print("size of dir to delete: {}\n", fs.get_smallest_size_greater_than_size(space_needed));
+  fmt::print("size of dir to delete: {}\n", fs.size_ceil(space_needed));
 }
 
 int main(int /*unused*/, char** /*unused*/) {

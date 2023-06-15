@@ -1,82 +1,69 @@
 #include <charconv>
-#include <cstdlib>
 #include <fmt/format.h>
 #include <fstream>
-#include <iterator>
-#include <range/v3/algorithm/copy.hpp>
 #include <range/v3/algorithm/count_if.hpp>
-#include <range/v3/iterator/operations.hpp>
-#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/split.hpp>
-#include <range/v3/view/transform.hpp>
-#include <string_view>
+#include <ranges>
 #include <vector>
 
+auto const to_ids = [](auto&& t_sections) {
+  using std::views::split, std::views::transform, std::views::common;
+
+  std::vector<int> ret_val;
+  ret_val.reserve(4);  // hard code 4 because every assignment always contain 4 integers
+
+  for (auto&& sections : t_sections | split(',')) {
+    auto tf_view = sections      //
+                   | split('-')  //
+                   | transform([](auto&& t_sec) {
+                       int section = 0;
+                       std::from_chars(&*t_sec.begin(), &*t_sec.end(), section);
+
+                       return section;
+                     })  //
+                   | common;
+    ret_val.insert(ret_val.end(), tf_view.begin(), tf_view.end());
+  }
+
+  return ret_val;
+};
+
 void part1() {
-  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::count_if, ranges::distance,
-    ranges::views::transform, ranges::copy;
+  using ranges::getlines, ranges::count_if;
 
   std::ifstream assignment_list((INPUT_FILE));
 
-  auto rng    = getlines(assignment_list) | to_vector;
-  auto amount = count_if(rng, [](auto&& t_sections) {
-    auto section_list = t_sections | split(',');
+  auto amount = count_if(
+    getlines(assignment_list),
+    [](auto&& result) {
+      auto const first_start = result[0];
+      auto const first_end   = result[1];
+      auto const sec_start   = result[2];
+      auto const sec_end     = result[3];
 
-    std::vector<int> result;
-    for (auto&& sections : section_list) {
-      copy(sections | split('-') | transform([](auto&& t_sec) {
-             int section = 0;
-
-             std::string_view v(&*t_sec.begin(), static_cast<std::size_t>(distance(t_sec)));
-             [[maybe_unused]] auto [ptr, ec]{std::from_chars(v.data(), v.data() + v.size(), section)};
-
-             return section;
-           }),
-           std::back_inserter(result));
-    }
-
-    auto const first_start = result[0];
-    auto const first_end   = result[1];
-    auto const sec_start   = result[2];
-    auto const sec_end     = result[3];
-
-    return (first_start <= sec_start and sec_end <= first_end) or (sec_start <= first_start and first_end <= sec_end);
-  });
+      return (first_start <= sec_start and sec_end <= first_end) or (sec_start <= first_start and first_end <= sec_end);
+    },
+    to_ids);
 
   fmt::print("fully contain amount: {}\n", amount);
 }
 
 void part2() {
-  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::count_if, ranges::distance,
-    ranges::views::transform, ranges::copy;
+  using ranges::getlines, ranges::count_if;
 
   std::ifstream assignment_list((INPUT_FILE));
 
-  auto rng    = getlines(assignment_list) | to_vector;
-  auto amount = count_if(rng, [](auto&& t_sections) {
-    auto section_list = t_sections | split(',');
+  auto amount = count_if(
+    getlines(assignment_list),
+    [](auto&& result) {
+      auto const first_start = result[0];
+      auto const first_end   = result[1];
+      auto const sec_start   = result[2];
+      auto const sec_end     = result[3];
 
-    std::vector<int> result;
-    for (auto&& sections : section_list) {
-      copy(sections | split('-') | transform([](auto&& t_sec) {
-             int section = 0;
-
-             std::string_view v(&*t_sec.begin(), static_cast<std::size_t>(distance(t_sec)));
-             [[maybe_unused]] auto [ptr, ec]{std::from_chars(v.data(), v.data() + v.size(), section)};
-
-             return section;
-           }),
-           std::back_inserter(result));
-    }
-
-    auto const first_start = result[0];
-    auto const first_end   = result[1];
-    auto const sec_start   = result[2];
-    auto const sec_end     = result[3];
-
-    return first_start <= sec_end and sec_start <= first_end;
-  });
+      return first_start <= sec_end and sec_start <= first_end;
+    },
+    to_ids);
 
   fmt::print("overlapped amount: {}\n", amount);
 }

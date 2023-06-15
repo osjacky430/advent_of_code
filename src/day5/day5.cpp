@@ -11,14 +11,35 @@
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/split.hpp>
 #include <range/v3/view/stride.hpp>
-#include <range/v3/view/take_last.hpp>
 #include <range/v3/view/transform.hpp>
-#include <stack>
+#include <utility>
 #include <vector>
 
+auto get_crate_stack(auto&& t_initial_cond) {
+  using ranges::views::drop_last, ranges::views::reverse, ranges::views::enumerate, ranges::views::filter,
+    ranges::views::stride;
+
+  auto const column = static_cast<std::size_t>(t_initial_cond.back().back() - '0');
+  std::vector<std::deque<char>> stacks(column);
+
+  // construct stack row by row. This is similar to construct stack column by column, although one might think since the
+  // deque is constructed using iterator begin and last, it might be more efficient in terms of memory. However,
+  // according to cpp-reference, "deques typically have large minimal memory cost, a deque holding just one element has
+  // to allocate its full internal array (8 times the object size for libstdc++, or max(16 times, 4096 bytes) on
+  // libc++). Inspecting the input, max initial stack size = 8, which doesn't exceed internal array size, therefore the
+  // amount of allocation it needs doesn't change (for initial stack construction).
+  for (auto&& str : t_initial_cond | drop_last(1) | reverse) {
+    for (std::string_view sv(str.begin() + 1, str.end());
+         auto [idx, chr] : enumerate(sv | stride(4)) | filter([](auto t_v) { return std::get<1>(t_v) != ' '; })) {
+      stacks[idx].push_back(chr);
+    }
+  }
+
+  return stacks;
+}
+
 void part1() {
-  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::views::transform, ranges::views::drop_last,
-    ranges::views::reverse, ranges::views::stride, ranges::views::enumerate, ranges::views::filter;
+  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::views::transform;
 
   std::ifstream assignment_list((INPUT_FILE));
 
@@ -26,18 +47,7 @@ void part1() {
   auto rng   = lines | split("");
 
   auto initial_cond = *begin(rng) | to_vector;
-
-  auto const stack_count = static_cast<std::size_t>(initial_cond.back().back() - '0');
-  std::vector<std::stack<char>> stacks(stack_count);
-
-  // cartesian product?
-  for (auto&& str : initial_cond | drop_last(1) | reverse) {
-    std::string_view sv(str.begin() + 1, str.end());
-
-    for (auto [idx, chr] : enumerate(sv | stride(4)) | filter([](auto t_v) { return std::get<1>(t_v) != ' '; })) {
-      stacks[idx].push(chr);
-    }
-  }
+  auto stacks       = get_crate_stack(initial_cond);
 
   auto commands = *next(begin(rng));
   for (auto cmd : commands) {
@@ -51,18 +61,17 @@ void part1() {
     auto& to_stack   = stacks[static_cast<std::size_t>(to - 1)];
 
     for (int i = 0; i < quantity; ++i) {
-      to_stack.push(from_stack.top());
-      from_stack.pop();
+      to_stack.push_back(from_stack.back());
+      from_stack.pop_back();
     }
   }
 
-  auto const top_crates = stacks | transform([](auto&& t_v) { return t_v.top(); }) | ranges::to<std::string>;
+  auto const top_crates = stacks | transform([](auto&& t_v) { return t_v.back(); }) | ranges::to<std::string>;
   fmt::print("top crates with CrateMover 9000: {}\n", top_crates);
 }
 
 void part2() {
-  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::views::transform, ranges::views::drop_last,
-    ranges::views::reverse, ranges::views::stride, ranges::views::enumerate, ranges::views::filter;
+  using ranges::getlines, ranges::to_vector, ranges::views::split, ranges::views::transform;
 
   std::ifstream assignment_list((INPUT_FILE));
 
@@ -70,17 +79,7 @@ void part2() {
   auto rng   = lines | split("");
 
   auto initial_cond = *begin(rng) | to_vector;
-
-  auto const stack_count = static_cast<std::size_t>(initial_cond.back().back() - '0');
-  std::vector<std::deque<char>> stacks(stack_count);
-
-  for (auto&& str : initial_cond | drop_last(1) | reverse) {
-    std::string_view sv(str.begin() + 1, str.end());
-
-    for (auto [idx, chr] : enumerate(sv | stride(4)) | filter([](auto t_v) { return std::get<1>(t_v) != ' '; })) {
-      stacks[idx].push_back(chr);
-    }
-  }
+  auto stacks       = get_crate_stack(initial_cond);
 
   auto commands = *next(begin(rng));
   for (auto cmd : commands) {
