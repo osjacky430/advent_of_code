@@ -1,4 +1,4 @@
-#include "split_helper.hpp"
+#include "string_util.hpp"
 #include <fmt/format.h>
 #include <fstream>
 #include <map>
@@ -51,7 +51,7 @@ void part1() {
   std::map<std::string, double> evaluated;
   eval(evaluated, rng, [&]() { return not evaluated.contains("root"s); });
 
-  fmt::print("root = {}\n", evaluated.at("root"s));
+  fmt::println("root = {}", evaluated.at("root"s));
 }
 
 auto newton_ralphson(std::map<std::string, std::vector<std::string>>& t_tokens, double t_guess,
@@ -82,7 +82,7 @@ auto newton_ralphson(std::map<std::string, std::vector<std::string>>& t_tokens, 
   while (true) {
     double f_x1      = f(t_guess);
     auto const slope = (f(t_guess + dx) - f_x1) / dx;
-    // fmt::print("iteration result: f({}) = {}, f'({}) ~= {}\n", t_guess, f_x1, t_guess, slope);
+    // fmt::println("iteration result: f({}) = {}, f'({}) ~= {}", t_guess, f_x1, t_guess, slope);
 
     if (std::abs(f_x1) < t_epsilon) {
       break;
@@ -109,7 +109,7 @@ void part2() {
              to<std::map>;
 
   auto const result = newton_ralphson(rng, 1);
-  fmt::print("I should yell: {}!\n", result);
+  fmt::println("I should yell: {}!", result);
 }
 
 int main(int /**/, char** /**/) {

@@ -1,5 +1,5 @@
 #include "pairview.hpp"
-#include "split_helper.hpp"
+#include "string_util.hpp"
 
 #include <array>
 #include <cmath>
@@ -8,14 +8,18 @@
 #include <fmt/ranges.h>
 #include <fstream>
 #include <functional>
+#include <range/v3/action/action.hpp>
+#include <range/v3/action/insert.hpp>
+#include <range/v3/algorithm/minmax.hpp>
+#include <range/v3/functional/bind_back.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
-#include <set>
-
-#include <range/v3/algorithm/minmax.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/take_last.hpp>
+#include <set>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 
 using Coor = std::pair<int, int>;
 
@@ -39,14 +43,79 @@ void print_knot(std::array<std::vector<Coor>, KnotNum> const& t_footprint) {
     }
 
     for (auto&& row : map) {
-      fmt::print("{}\n", row);
+      fmt::println("{}", row);
     }
-    fmt::print("\n");
+    fmt::println("");
   }
 }
 
+namespace {
+
+template <typename T>
+concept structure_bindable_pair = requires(T t_v) {
+  std::get<0>(t_v);
+  std::get<1>(t_v);
+
+  requires std::tuple_size_v<T> == 2;
+};
+
+struct RopeMoverFn {
+  constexpr auto operator()(char const t_dir) const {
+    return ranges::make_action_closure(ranges::bind_back(RopeMoverFn{}, t_dir));
+  }
+
+  template <typename Rng>
+    requires(structure_bindable_pair<typename std::remove_const_t<std::remove_reference_t<Rng>>::value_type>)
+  Rng operator()(Rng&& t_rng, char const t_dir) const {
+    auto& [head_x, head_y] = *std::begin(t_rng);
+    switch (t_dir) {
+      case 'R':
+        ++head_x;
+        break;
+      case 'U':
+        --head_y;
+        break;
+      case 'L':
+        --head_x;
+        break;
+      case 'D':
+        ++head_y;
+        break;
+      default:
+        std::unreachable();
+    }
+
+    for (auto&& [first, second] : ranges::views::pairview(t_rng)) {
+      auto& [x_head, y_head] = first;
+      auto& [x_tail, y_tail] = second;
+
+      auto const x_diff = x_head - x_tail;
+      auto const y_diff = y_head - y_tail;
+      if (std::abs(x_diff) > 1) {
+        if (std::abs(y_diff) != 0) {
+          y_tail += static_cast<int>(std::copysign(1, y_diff));
+        }
+
+        x_tail += static_cast<int>(std::copysign(1, x_diff));
+      } else if (std::abs(y_diff) > 1) {
+        if (std::abs(x_diff) != 0) {
+          x_tail += static_cast<int>(std::copysign(1, x_diff));
+        }
+
+        y_tail += static_cast<int>(std::copysign(1, y_diff));
+      }
+    }
+
+    return std::forward<Rng>(t_rng);
+  }
+};
+
+inline constexpr RopeMoverFn move_rope{};
+
+}  // namespace
+
 void move(char const t_dir, auto&& t_ropes) {
-  using ranges::views::zip, ranges::span, ranges::distance;
+  using ranges::for_each;
 
   auto& [head, tail] = t_ropes[0];
   switch (t_dir) {
@@ -62,14 +131,13 @@ void move(char const t_dir, auto&& t_ropes) {
     case 'D':
       ++tail;
       break;
+    default:
+      std::unreachable();
   }
 
-  auto&& rng = range_helper::pairview(t_ropes);
-  // auto&& rng = zip(span<Coor>(t_ropes.begin(), t_ropes.end() - 1), span<Coor>(t_ropes.begin() + 1, t_ropes.end()));
-  for (auto iter = begin(rng); iter != end(rng); ++iter) {
-    auto&& [first, second] = *iter;
-    auto& [x_head, y_head] = *first;
-    auto& [x_tail, y_tail] = *second;
+  for (auto&& [first, second] : ranges::views::pairview(t_ropes)) {
+    auto& [x_head, y_head] = first;
+    auto& [x_tail, y_tail] = second;
 
     auto const x_diff = x_head - x_tail;
     auto const y_diff = y_head - y_tail;
@@ -101,16 +169,16 @@ void part1() {
   visited.emplace(0, 0);
 
   for (auto&& instruction : rng) {
-    auto const decomposed = split_string(instruction);
-    auto const direction  = decomposed[0][0];
-    auto const amount     = std::stoi(std::string(decomposed[1]));
+    auto const cmd       = split_string(instruction);
+    auto const direction = cmd[0][0];
+    auto const amount    = std::stoi(cmd[1]);
+
     for (int i = 0; i < amount; ++i) {
-      move(direction, rope);
-      visited.emplace(rope.back());
+      ranges::actions::insert(visited, (rope |= ::move_rope(direction)) | ranges::views::take_last(1));
     }
   }
 
-  fmt::print("position visited: {}\n", visited.size());
+  fmt::println("position visited: {}", visited.size());
 }
 
 void part2() {
@@ -131,16 +199,14 @@ void part2() {
     auto const amount    = std::stoi(cmd[1]);
 
     for (int i = 0; i < amount; ++i) {
-      move(direction, rope);
-      for (std::size_t j = 0; j < rope.size(); ++j) {
-        footprint[j].push_back(rope[j]);
-      }
-      visited.emplace(rope.back());
+      ranges::actions::insert(visited, (rope |= ::move_rope(direction)) | ranges::views::take_last(1));
+      // for (std::size_t j = 0; j < rope.size(); ++j) {
+      //   footprint[j].push_back(rope[j]);
+      // }
     }
   }
 
-  // print_knot(footprint);
-  fmt::print("position visited: {}\n", visited.size());
+  fmt::println("position visited: {}", visited.size());
 }
 
 int main(int /**/, char** /**/) {

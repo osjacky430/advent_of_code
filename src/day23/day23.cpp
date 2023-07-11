@@ -1,26 +1,20 @@
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <fmt/format.h>
 #include <fstream>
 #include <functional>
-#include <list>
 #include <map>
-#include <range/v3/algorithm/find_if.hpp>
-#include <range/v3/algorithm/minmax.hpp>
-#include <range/v3/algorithm/none_of.hpp>
-#include <range/v3/iterator/operations.hpp>
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/cycle.hpp>
-#include <range/v3/view/getlines.hpp>
-#include <range/v3/view/transform.hpp>
+#include <range/v3/algorithm.hpp>
+#include <range/v3/view.hpp>
 #include <set>
 #include <utility>
+#include <vector>
 
 struct Elf;
 
-using Coor         = std::pair<int, int>;
-using DirPred      = std::pair<bool (*)(std::set<Coor> const&, Elf const&), Coor (*)(Coor)>;
-using DirPredOrder = std::list<DirPred>;
+using Coor    = std::pair<int, int>;
+using DirPred = std::pair<bool (*)(std::set<Coor> const&, Elf const&), Coor (*)(Coor)>;
 
 struct Elf {
   bool conflicted_proposal_ = false;
@@ -36,43 +30,43 @@ struct Elf {
 };
 
 template <char Dir>
-struct Adjacent {
-  auto operator()(Coor const& t_to_check) const noexcept {
-    //    N
-    //  W + E
-    //    S
+inline constexpr auto adjacent = [](Coor const& t_to_check) {
+  //    N
+  //  W + E
+  //    S
 
-    auto&& [x_check, y_check] = t_to_check;
-    if constexpr (Dir == 'N') {
-      return std::vector{Coor{x_check - 1, y_check - 1}, Coor{x_check, y_check - 1}, Coor{x_check + 1, y_check - 1}};
-    } else if constexpr (Dir == 'S') {
-      return std::vector{Coor{x_check - 1, y_check + 1}, Coor{x_check, y_check + 1}, Coor{x_check + 1, y_check + 1}};
-    } else if constexpr (Dir == 'W') {
-      return std::vector{Coor{x_check - 1, y_check - 1}, Coor{x_check - 1, y_check}, Coor{x_check - 1, y_check + 1}};
-    } else if constexpr (Dir == 'E') {
-      return std::vector{Coor{x_check + 1, y_check - 1}, Coor{x_check + 1, y_check}, Coor{x_check + 1, y_check + 1}};
-    }
+  auto&& [x_check, y_check] = t_to_check;
+  if constexpr (Dir == 'N') {
+    return std::array{Coor{x_check - 1, y_check - 1}, Coor{x_check, y_check - 1}, Coor{x_check + 1, y_check - 1}};
+  } else if constexpr (Dir == 'S') {
+    return std::array{Coor{x_check - 1, y_check + 1}, Coor{x_check, y_check + 1}, Coor{x_check + 1, y_check + 1}};
+  } else if constexpr (Dir == 'W') {
+    return std::array{Coor{x_check - 1, y_check - 1}, Coor{x_check - 1, y_check}, Coor{x_check - 1, y_check + 1}};
+  } else if constexpr (Dir == 'E') {
+    return std::array{Coor{x_check + 1, y_check - 1}, Coor{x_check + 1, y_check}, Coor{x_check + 1, y_check + 1}};
   }
+
+  std::unreachable();
 };
 
 inline constexpr std::array<DirPred, 4> MOVE_ORDER = {
   DirPred{[](std::set<Coor> const& t_elves, Elf const& t_elf_to_check) {
-            return ranges::none_of(Adjacent<'N'>{}(t_elf_to_check.coor_),
+            return ranges::none_of(adjacent<'N'>(t_elf_to_check.coor_),
                                    [&](auto&& t_coor) { return t_elves.contains(t_coor); });
           },
           [](Coor t_v) { return --t_v.second, t_v; }},  // abomination
   DirPred{[](std::set<Coor> const& t_elves, Elf const& t_elf_to_check) {
-            return ranges::none_of(Adjacent<'S'>{}(t_elf_to_check.coor_),
+            return ranges::none_of(adjacent<'S'>(t_elf_to_check.coor_),
                                    [&](auto&& t_coor) { return t_elves.contains(t_coor); });
           },
           [](Coor t_v) { return ++t_v.second, t_v; }},
   DirPred{[](std::set<Coor> const& t_elves, Elf const& t_elf_to_check) {
-            return ranges::none_of(Adjacent<'W'>{}(t_elf_to_check.coor_),
+            return ranges::none_of(adjacent<'W'>(t_elf_to_check.coor_),
                                    [&](auto&& t_coor) { return t_elves.contains(t_coor); });
           },
           [](Coor t_v) { return --t_v.first, t_v; }},
   DirPred{[](std::set<Coor> const& t_elves, Elf const& t_elf_to_check) {
-            return ranges::none_of(Adjacent<'E'>{}(t_elf_to_check.coor_),
+            return ranges::none_of(adjacent<'E'>(t_elf_to_check.coor_),
                                    [&](auto&& t_coor) { return t_elves.contains(t_coor); });
           },
           [](Coor t_v) { return ++t_v.first, t_v; }},
@@ -84,8 +78,8 @@ void debug_print(std::vector<Elf> const& t_elves, std::size_t const t_round) {
   auto&& [min_x, max_x] = minmax(t_elves, std::less<>{}, [](auto const& t_elf) { return t_elf.get_coor().first; });
   auto&& [min_y, max_y] = minmax(t_elves, std::less<>{}, [](auto const& t_elf) { return t_elf.get_coor().second; });
 
-  auto const x_size = static_cast<std::size_t>(max_x.coor_.first - min_x.coor_.first + 1);
-  auto const y_size = static_cast<std::size_t>(max_y.coor_.second - min_y.coor_.second + 1);
+  auto const x_size = static_cast<std::size_t>(max_x.coor_.first - min_x.coor_.first) + 1;
+  auto const y_size = static_cast<std::size_t>(max_y.coor_.second - min_y.coor_.second) + 1;
 
   std::vector<std::string> map(y_size, std::string(x_size, '.'));
   for (auto&& elf : t_elves) {
@@ -97,37 +91,38 @@ void debug_print(std::vector<Elf> const& t_elves, std::size_t const t_round) {
   }
 
   for (auto&& row : map) {
-    fmt::print("{}\n", row);
+    fmt::println("{}", row);
   }
 
-  fmt::print("== End of Round {} == \n", t_round);
+  fmt::println("== End of Round {} == ", t_round);
 }
 
 void move(std::vector<Elf>& t_elves, auto&& t_direction_predicate) {
-  using ranges::find_if, ranges::views::transform, ranges::to;
+  using ranges::find_if, ranges::views::transform, ranges::to, ranges::views::drop;
 
   auto const elf_position = t_elves | transform(&Elf::get_coor) | to<std::set>;
   std::map<Coor, Elf&> proposed_position;
 
   for (auto&& elf : t_elves) {
-    auto const have_neighbor = [&](auto&& t_pred) { return not(*t_pred.first)(elf_position, elf); };
+    auto const no_neighbor   = [&](auto&& t_pred) { return (*t_pred.first)(elf_position, elf); };
+    auto const have_neighbor = [&](auto&& t_pred) { return not no_neighbor(t_pred); };
 
     elf.conflicted_proposal_ = false;
     auto const move_result   = [&]() {
-      // iteration starts with first considered direction, if first considered direction is invalid (have_neighbor
-      // returns true), then continue until first considered direction is false, which means find_if returns value other
-      // than first considered direction (second "if"), or one pass last consider direction (first "if").
-      for (auto considered_dir = t_direction_predicate;
-           static_cast<std::size_t>(considered_dir - t_direction_predicate) < MOVE_ORDER.size(); ++considered_dir) {
-        auto const consider_dir_end  = considered_dir + MOVE_ORDER.size();
-        auto const first_invalid_dir = find_if(considered_dir, consider_dir_end, have_neighbor);
-        if (first_invalid_dir == considered_dir + MOVE_ORDER.size()) {  // no neighbor
-          return DirPred{nullptr, nullptr};
-        }
+      auto const begin         = ranges::begin(t_direction_predicate);
+      auto const end           = ranges::end(t_direction_predicate);
+      auto const first_invalid = find_if(t_direction_predicate, have_neighbor);
+      if (first_invalid == end) {
+        return DirPred{nullptr, nullptr};
+      }
 
-        if (first_invalid_dir != considered_dir) {
-          return *considered_dir;
-        }
+      if (first_invalid != begin) {
+        return *begin;
+      }
+
+      auto const first_valid = find_if(ranges::next(first_invalid), end, no_neighbor);
+      if (first_valid != end) {
+        return *first_valid;
       }
 
       return DirPred{nullptr, nullptr};  // neighbor everywhere
@@ -172,47 +167,42 @@ auto get_elves_coor_from_map(auto&& t_map) {
 }
 
 void part1() {
-  using ranges::getlines, ranges::to_vector, ranges::minmax, ranges::views::cycle;
+  using ranges::getlines, ranges::to_vector, ranges::minmax, ranges::views::cycle, ranges::views::sliding,
+    ranges::views::take;
 
   std::fstream in((INPUT_FILE));
   auto const rng = getlines(in) | to_vector;
 
-  auto elves           = get_elves_coor_from_map(rng);
-  auto direction_cycle = cycle(MOVE_ORDER);
-  auto iter            = begin(direction_cycle);
-  for (std::size_t i = 0; i < 10; ++i) {
-    move(elves, iter);
-    ++iter;
+  auto elves = get_elves_coor_from_map(rng);
+  for (auto&& current_order : MOVE_ORDER | cycle | sliding(MOVE_ORDER.size()) | take(10)) {
+    move(elves, current_order);
   }
 
   auto&& [min_x, max_x] = minmax(elves, std::less<>{}, [](auto const& t_elf) { return t_elf.get_coor().first; });
   auto&& [min_y, max_y] = minmax(elves, std::less<>{}, [](auto const& t_elf) { return t_elf.get_coor().second; });
 
   auto const total_tile = (max_x.coor_.first - min_x.coor_.first + 1) * (max_y.coor_.second - min_y.coor_.second + 1);
-  fmt::print("min x: {}, max x: {}, min y: {}, max y: {}\n", min_x.coor_.first, max_x.coor_.first, min_y.coor_.second,
-             max_y.coor_.second);
-  fmt::print("empty ground tiles: {}\n", total_tile - static_cast<int>(elves.size()));
+  fmt::println("empty ground tiles: {}", total_tile - static_cast<int>(elves.size()));
 }
 
 void part2() {
-  using ranges::getlines, ranges::to_vector, ranges::views::cycle;
+  using ranges::getlines, ranges::to_vector, ranges::views::cycle, ranges::views::sliding, ranges::views::take;
 
   std::fstream in((INPUT_FILE));
   auto const rng = getlines(in) | to_vector;
 
-  auto elves           = get_elves_coor_from_map(rng);
-  auto direction_cycle = cycle(MOVE_ORDER);
-  auto iter            = begin(direction_cycle);
-
-  std::vector<Elf> prev_result = elves;
-  for (std::size_t round = 0;; prev_result = elves, ++iter) {
-    move(elves, iter);
+  auto elves       = get_elves_coor_from_map(rng);
+  auto prev_result = elves;
+  for (std::size_t round = 0; auto&& current_order : MOVE_ORDER | cycle | sliding(MOVE_ORDER.size())) {
+    move(elves, current_order);
     ++round;
 
     if (prev_result == elves) {
-      fmt::print("After {} of rounds, no elves moves for the first time\n", round);
+      fmt::println("After {} of rounds, no elves moves for the first time", round);
       break;
     }
+
+    prev_result = elves;
   }
 }
 

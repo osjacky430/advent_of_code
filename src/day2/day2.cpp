@@ -25,7 +25,7 @@ void part1() {
     return t_v + rps_table.at(my_choice).at(elf_choice);
   });
 
-  fmt::print("self deduct: {}\n", score);
+  fmt::println("self deduct: {}", score);
 }
 
 void part2() {
@@ -47,7 +47,7 @@ void part2() {
     return t_v + strat_table.at(elf_strat).at(elf_choice);
   });
 
-  fmt::print("elf strategy: {}\n", score);
+  fmt::println("elf strategy: {}", score);
 }
 
 int main(int /*unused*/, char** /*unused*/) {

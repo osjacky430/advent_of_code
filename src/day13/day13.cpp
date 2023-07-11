@@ -1,4 +1,3 @@
-#include "split_helper.hpp"
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
@@ -97,10 +96,10 @@ Node parse_node(std::string_view const t_str) {
   }
 
   Node lhs{};
-  std::size_t bracket_count = 1;
-  std::string_view::iterator bracket_begin;
-  for (auto iter = t_str.begin() + 1; iter != t_str.end() - 1; ++iter) {
-    if (std::isdigit(*iter)) {
+  std::size_t bracket_count                = 1;
+  std::string_view::iterator bracket_begin = nullptr;
+  for (auto const* iter = t_str.begin() + 1; iter != t_str.end() - 1; ++iter) {
+    if (std::isdigit(*iter) != 0) {
       if (bracket_count == 1) {
         lhs.signals_.emplace_back(parse_int(iter, t_str.size()));
       }
@@ -145,7 +144,7 @@ void part1() {
     }
   }
 
-  fmt::print("sum of right order signals: {}\n", result);
+  fmt::println("sum of right order signals: {}", result);
 }
 
 void part2() {
@@ -168,8 +167,8 @@ void part2() {
   // or using upper_bound to count backward
   auto const divider_packet_1 = ranges::lower_bound(rng, parse_node("[[2]]"sv), predicate) - rng.begin() + 1;
   auto const divider_packet_2 = ranges::lower_bound(rng, parse_node("[[6]]"sv), predicate) - rng.begin() + 2;
-  fmt::print("packets position: {}, {}, decoder key: {}\n", divider_packet_1, divider_packet_2,
-             divider_packet_1 * divider_packet_2);
+  fmt::println("packets position: {}, {}, decoder key: {}", divider_packet_1, divider_packet_2,
+               divider_packet_1 * divider_packet_2);
 }
 
 int main(int /**/, char** /**/) {

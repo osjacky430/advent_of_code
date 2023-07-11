@@ -19,7 +19,7 @@ void detect_packet(std::string_view sv, std::size_t t_number_of_unique_chr) {
     return static_cast<std::size_t>(std::popcount(flag)) == t_number_of_unique_chr;
   });
 
-  fmt::print("packet start: {}\n", static_cast<std::size_t>(distance(rng.begin(), start)) + t_number_of_unique_chr);
+  fmt::println("packet start: {}", static_cast<std::size_t>(distance(rng.begin(), start)) + t_number_of_unique_chr);
 }
 
 void part1() {

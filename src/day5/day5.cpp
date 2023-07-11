@@ -67,7 +67,7 @@ void part1() {
   }
 
   auto const top_crates = stacks | transform([](auto&& t_v) { return t_v.back(); }) | ranges::to<std::string>;
-  fmt::print("top crates with CrateMover 9000: {}\n", top_crates);
+  fmt::println("top crates with CrateMover 9000: {}", top_crates);
 }
 
 void part2() {
@@ -100,7 +100,7 @@ void part2() {
   }
 
   auto const top_crates = stacks | transform([](auto&& t_v) { return t_v.back(); }) | ranges::to<std::string>;
-  fmt::print("top crates with CrateMover 9001: {}\n", top_crates);
+  fmt::println("top crates with CrateMover 9001: {}", top_crates);
 }
 
 int main(int /*unused*/, char** /*unused*/) {

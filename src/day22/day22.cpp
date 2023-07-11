@@ -1,10 +1,12 @@
+#include "string_util.hpp"
 #include <array>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <fmt/format.h>
 #include <fstream>
+#include <iterator>
 #include <numeric>
+#include <optional>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/algorithm/max.hpp>
@@ -96,17 +98,18 @@ void part1() {
 
   auto curr_pos = std::pair{map.front().find('.') + 1, 1UL};
 
-  std::size_t dir = 0;
-  for (auto const* ptr = instruction.data(); ptr != instruction.data() + instruction.size();) {
+  std::size_t dir           = 0;
+  auto const* const end_ptr = std::next(instruction.data(), static_cast<long>(instruction.size()));
+  for (auto const* ptr = instruction.data(); ptr != end_ptr;) {
     int steps = 0;
-    auto [non_matching_pos, ec]{std::from_chars(ptr, instruction.data() + instruction.size(), steps)};
-    if (ec == std::errc::invalid_argument) {  // R or L
+    if (auto [non_matching_pos, ec]{ranges_from_chars(std::string_view(ptr, end_ptr), steps)};
+        ec == std::errc::invalid_argument) {  // R or L
       if (*ptr == 'R') {
         dir = (dir + 1) % 4;
       } else {
         dir = (dir + 3) % 4;  // dir = 0 -> dir - 1 = 3; dir = 1 -> dir - 1 = 0
       }
-      ++ptr;
+      ptr = std::next(ptr);
     } else if (ec == std::errc()) {
       ptr = non_matching_pos;
     }
@@ -115,7 +118,7 @@ void part1() {
   }
 
   auto result = 1000 * curr_pos.second + 4 * curr_pos.first + dir;
-  fmt::print("result: {}\n", result);
+  fmt::println("result: {}", result);
 }
 
 auto find_length_of_cube(std::vector<std::string> const& t_map) {
@@ -291,18 +294,20 @@ void part2() {
   };
 
   // map[0][0] <-> (1, 1)
-  auto curr_pos   = std::pair{map.front().find('.') + 1, 1UL};
-  std::size_t dir = 0;
-  for (auto const* ptr = instruction.data(); ptr != instruction.data() + instruction.size();) {
+  auto curr_pos             = std::pair{map.front().find('.') + 1, 1UL};
+  std::size_t dir           = 0;
+  auto const* const end_ptr = std::next(instruction.data(), static_cast<long>(instruction.size()));
+
+  for (auto const* ptr = instruction.data(); ptr != end_ptr;) {
     int steps = 0;
-    auto [non_matching_pos, ec]{std::from_chars(ptr, instruction.data() + instruction.size(), steps)};
-    if (ec == std::errc::invalid_argument) {  // R or L
+    if (auto [non_matching_pos, ec]{ranges_from_chars(std::string_view(ptr, end_ptr), steps)};
+        ec == std::errc::invalid_argument) {  // R or L
       if (*ptr == 'R') {
         dir = (dir + 1) % 4;
       } else {
         dir = (dir + 3) % 4;  // dir = 0 -> dir - 1 = 3; dir = 1 -> dir - 1 = 0
       }
-      ++ptr;
+      ptr = std::next(ptr);
     } else if (ec == std::errc()) {
       ptr = non_matching_pos;
     }
@@ -311,11 +316,11 @@ void part2() {
   }
 
   // for (auto&& row : map) {
-  //   fmt::print("{}\n", row);
+  //   fmt::println("{}", row);
   // }
 
   auto result = 1000 * curr_pos.second + 4 * curr_pos.first + dir;
-  fmt::print("result: {}\n", result);
+  fmt::println("result: {}", result);
 }
 
 int main(int /**/, char** /**/) {

@@ -2,23 +2,20 @@
 #include <cmath>
 #include <concepts>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 #include <fstream>
 #include <list>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/indices.hpp>
 #include <range/v3/view/transform.hpp>
 #include <vector>
 
-// @todo maybe ranges::views::cycle can do the job
 template <typename T>
   requires(std::integral<T>)
 void mix(std::list<T>& t_numbers, std::vector<typename std::list<T>::iterator>& t_nodes) {
   using ranges::for_each;
-  for_each(t_nodes, [&](auto&& t_node) {
+  for_each(t_nodes, [&, list_end = t_numbers.size() - 1](auto&& t_node) {
     auto const move = *t_node;
     if (move == 0) {
       return;
@@ -26,7 +23,6 @@ void mix(std::list<T>& t_numbers, std::vector<typename std::list<T>::iterator>& 
 
     // circular list: e.g [-1, 1, 3], end = 2, i.e. -1 (idx = 0) left shift 1 will move to idx = 1 (0 - 1 + 2)
     //                                               1 (idx = 1) right shift 1 will move to idx = 0 (1 + 1 - 2)
-    auto const list_end   = t_numbers.size() - 1;
     auto const move_steps = static_cast<std::size_t>(std::abs(move)) % list_end;
     auto pos              = t_numbers.erase(t_node);
     if (move > 0) {
@@ -72,10 +68,10 @@ void part1() {
   auto const first = numbers[(zero + 1_K) % numbers.size()];
   auto const sec   = numbers[(zero + 2_K) % numbers.size()];
   auto const third = numbers[(zero + 3_K) % numbers.size()];
-  fmt::print("1000: {}, 2000: {}, 3000: {}, sum: {}\n", first, sec, third, first + sec + third);
+  fmt::println("1000: {}, 2000: {}, 3000: {}, sum: {}", first, sec, third, first + sec + third);
 }
 
-inline constexpr auto DECRYPTION_KEY = 811589153;
+inline constexpr auto DECRYPTION_KEY = 811'589'153;
 
 void part2() {
   using ranges::getlines, ranges::views::transform, ranges::to, ranges::find, ranges::to_vector;
@@ -101,7 +97,7 @@ void part2() {
   auto const first = numbers[(zero + 1_K) % numbers.size()];
   auto const sec   = numbers[(zero + 2_K) % numbers.size()];
   auto const third = numbers[(zero + 3_K) % numbers.size()];
-  fmt::print("1000: {}, 2000: {}, 3000: {}, sum: {}\n", first, sec, third, first + sec + third);
+  fmt::println("1000: {}, 2000: {}, 3000: {}, sum: {}", first, sec, third, first + sec + third);
 }
 
 int main(int /**/, char** /**/) {

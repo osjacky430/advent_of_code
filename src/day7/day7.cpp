@@ -1,4 +1,4 @@
-#include "split_helper.hpp"
+#include "string_util.hpp"
 
 #include <charconv>
 #include <cstddef>
@@ -27,6 +27,7 @@ struct Node {
 
   [[nodiscard]] bool is_file() const noexcept { return this->children_.empty(); }
 
+  // iterator approach?
   void walk_node(auto&& t_func) const noexcept {
     t_func(this);
 
@@ -129,7 +130,7 @@ FileSystem parse_file_system() {
 void part1() {
   auto fs = parse_file_system();
 
-  fmt::print("total size: {}\n", fs.get_dir_size_sum_within_size(100'000));
+  fmt::println("total size: {}", fs.get_dir_size_sum_within_size(100'000));
 }
 
 void part2() {
@@ -141,8 +142,8 @@ void part2() {
   auto const used_disk_space = fs.get_used_disk_space();
   auto const space_needed    = used_disk_space - (TOTAL_DISK_SPACE - UNUSED_SPACE_NEEDED);
 
-  fmt::print("space needed: {}\n", space_needed);
-  fmt::print("size of dir to delete: {}\n", fs.size_ceil(space_needed));
+  fmt::println("space needed: {}", space_needed);
+  fmt::println("size of dir to delete: {}", fs.size_ceil(space_needed));
 }
 
 int main(int /*unused*/, char** /*unused*/) {

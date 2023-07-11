@@ -167,7 +167,7 @@ void part1() {
   auto const map_str = getlines(map) | to_vector;
   auto const checker = VisibilityChecker{map_str};
 
-  fmt::print("visible tree count: {}\n", checker.get_visible_tree_count());
+  fmt::println("visible tree count: {}", checker.get_visible_tree_count());
 }
 
 void part2() {
@@ -178,11 +178,11 @@ void part2() {
   auto const map_str = getlines(map) | to_vector;
   auto const checker = VisibilityChecker{map_str};
 
-  fmt::print("highest scenic score by count_viewable_height: {}\n",
-             checker.get_highest_scenery_value(&VisibilityChecker::count_viewable_height));
+  fmt::println("highest scenic score by count_viewable_height: {}",
+               checker.get_highest_scenery_value(&VisibilityChecker::count_viewable_height));
 
-  fmt::print("highest scenic score by next_greater_element: {}\n",
-             checker.get_highest_scenery_value(&VisibilityChecker::next_greater_element));
+  fmt::println("highest scenic score by next_greater_element: {}",
+               checker.get_highest_scenery_value(&VisibilityChecker::next_greater_element));
 }
 
 int main(int /**/, char** /**/) {

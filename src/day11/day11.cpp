@@ -1,4 +1,4 @@
-#include "split_helper.hpp"
+#include "string_util.hpp"
 
 #include <cstdlib>
 #include <deque>
@@ -127,7 +127,7 @@ void part1() {
   }
 
   partial_sort(begin(monkeys), begin(monkeys) + 2, end(monkeys), std::greater{}, &Monkey::get_inspected_time);
-  fmt::print("monkey business: {}\n", monkeys[0].inspected_time_ * monkeys[1].inspected_time_);
+  fmt::println("monkey business: {}", monkeys[0].inspected_time_ * monkeys[1].inspected_time_);
 }
 
 void part2() {
@@ -144,7 +144,7 @@ void part2() {
   }
 
   partial_sort(begin(monkeys), begin(monkeys) + 2, end(monkeys), std::greater{}, &Monkey::get_inspected_time);
-  fmt::print("monkey business: {}\n", monkeys[0].inspected_time_ * monkeys[1].inspected_time_);
+  fmt::println("monkey business: {}", monkeys[0].inspected_time_ * monkeys[1].inspected_time_);
 }
 
 int main(int /**/, char** /**/) {

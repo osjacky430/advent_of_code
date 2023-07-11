@@ -27,7 +27,7 @@ auto carry(int const t_value) {
 
   // arithmetic rule:
   //
-  // e.g.     102_sanfu
+  // e.g.     102_snafu
   //      +   212_snafu
   //         10-1_snafu
   //         ----------
@@ -115,7 +115,7 @@ void part1() {
   }
 
   reverse(res);
-  fmt::print("{}\n", res | transform(to_snafu) | to<std::string>);
+  fmt::println("{}", res | transform(to_snafu) | to<std::string>);
 }
 
 int main(int /**/, char** /**/) {

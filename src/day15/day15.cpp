@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <functional>
-#include <map>
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/numeric/accumulate.hpp>
@@ -21,6 +20,11 @@ auto manhattan(Coor const& t_first, Coor const& t_second) {
   return std::abs(t_first.first - t_second.first) + std::abs(t_first.second - t_second.second);
 }
 
+constexpr auto to_tuning_freq(Coor const& t_coor) {
+  static constexpr auto MULTIPLIER = 4000000;
+  return static_cast<double>(t_coor.first) * MULTIPLIER + static_cast<double>(t_coor.second);
+}
+
 class Sensor {
   Coor position_;
   Coor closest_beacon_;
@@ -34,7 +38,7 @@ class Sensor {
   int no_beacon_y_min_ = position_.second - manhattan_dist_;
 
  public:
-  Sensor(Coor const& t_pos, Coor const& t_beacon) : position_{t_pos}, closest_beacon_{t_beacon} {}
+  Sensor(Coor t_pos, Coor t_beacon) : position_{std::move(t_pos)}, closest_beacon_{std::move(t_beacon)} {}
 
   [[nodiscard]] bool can_pose_constraint(int const t_row) const noexcept {
     return this->no_beacon_y_min_ <= t_row and t_row <= this->no_beacon_y_max_;
@@ -55,10 +59,10 @@ class Sensor {
     return {this->no_beacon_x_min_cache_ + y_diff, this->no_beacon_x_max_cache_ - y_diff};
   }
 
-  Coor get_closest_beacon() const noexcept { return this->closest_beacon_; }
+  [[nodiscard]] Coor get_closest_beacon() const noexcept { return this->closest_beacon_; }
 
   [[nodiscard]] auto get_edge() const noexcept {
-    auto const amount = static_cast<std::size_t>(this->manhattan_dist_ * 4);
+    auto const amount = static_cast<std::size_t>(this->manhattan_dist_) * 4;
     std::vector<Coor> ret_val;
     ret_val.reserve(amount);
     ret_val.emplace_back(this->position_.first, this->no_beacon_y_min_ - 1);
@@ -124,7 +128,7 @@ void part1() {
     return max_x - min_x + 1;
   });
 
-  fmt::print("number of positions where a beacon cannot be present: {}\n", result);
+  fmt::println("number of positions where a beacon cannot be present: {}", result);
 }
 
 void part2() {
@@ -139,16 +143,16 @@ void part2() {
       for (auto&& edge : edges) {
         if (all_of(rng | filter([&](auto&& t_sensor) { return t_sensor != sensor; }),
                    [&](auto&& t_sensor) { return not t_sensor.is_in_range(edge); })) {
-          fmt::print("{}, {}\n", edge.first, edge.second);
-          return static_cast<double>(edge.first) * 4000000 + static_cast<double>(edge.second);
+          fmt::println("{}, {}", edge.first, edge.second);
+          return to_tuning_freq(edge);
         }
       }
     }
 
-    return 0.0;  // not reachable
+    std::unreachable();
   }();
 
-  fmt::print("distress freq: {}\n", result);
+  fmt::println("distress freq: {}", result);
 }
 
 int main(int /**/, char** /**/) {

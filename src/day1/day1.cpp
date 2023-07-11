@@ -32,7 +32,7 @@ void part1() {
   auto list_of_calories    = to_list_of_calories(lines);
   auto elf_with_max_calory = max(list_of_calories);
 
-  fmt::print("{}\n", elf_with_max_calory);
+  fmt::println("{}", elf_with_max_calory);
 }
 
 void part2() {
@@ -46,7 +46,7 @@ void part2() {
   partial_sort(rng, begin(rng) + 3, std::greater<>());
 
   auto sum_of_greatest_3 = accumulate(rng | take(3), 0);
-  fmt::print("sum of greatest 3: {}\n", sum_of_greatest_3);
+  fmt::println("sum of greatest 3: {}", sum_of_greatest_3);
 }
 
 int main(int /*unused*/, char** /*unused*/) {

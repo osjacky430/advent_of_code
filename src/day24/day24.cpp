@@ -3,60 +3,87 @@
 #include <fstream>
 #include <functional>
 #include <limits>
-#include <memory>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/algorithm/for_each.hpp>
+#include <range/v3/range/access.hpp>
 #include <range/v3/range/conversion.hpp>
-#include <range/v3/view/cycle.hpp>
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/getlines.hpp>
-#include <range/v3/view/indirect.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/repeat.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
+#include <range/v3/view.hpp>
+#include <type_traits>
 #include <utility>
+
+using ranges::views::zip, ranges::views::repeat, ranges::views::cycle, ranges::views::drop, ranges::views::reverse;
 
 using Coor = std::pair<std::size_t, std::size_t>;
 
-// wanna try something I usually don't do
-struct BlizzardBase {
-  BlizzardBase()                                  = default;
-  [[nodiscard]] BlizzardBase(const BlizzardBase&) = default;
-  BlizzardBase(BlizzardBase&&)                    = delete;
-  BlizzardBase& operator=(const BlizzardBase&)    = default;
-  BlizzardBase& operator=(BlizzardBase&&)         = delete;
+template <char Sign>
+struct GetMoveType {
+  static auto operator()(std::vector<std::size_t> const& t_iter, Coor const t_init) noexcept {
+    auto const [j, i] = t_init;
 
-  [[nodiscard]] virtual char get_sign() const noexcept        = 0;
-  virtual void move()                                         = 0;
-  [[nodiscard]] virtual Coor get_current_pos() const noexcept = 0;
+    if constexpr (Sign == '>') {
+      return zip(cycle(t_iter) | drop(j - 1), repeat(i));
+    }
 
-  virtual ~BlizzardBase() = default;
+    if constexpr (Sign == '<') {
+      return zip(cycle(t_iter | reverse) | drop(t_iter.size() - j), repeat(i));
+    }
+
+    if constexpr (Sign == '^') {
+      return zip(repeat(j), cycle(t_iter | reverse) | drop(t_iter.size() - i));
+    }
+
+    if constexpr (Sign == 'v') {
+      return zip(repeat(j), cycle(t_iter) | drop(i - 1));
+    }
+  }
+
+  using type = decltype(GetMoveType<Sign>::operator()({}, {}));
 };
 
-template <typename Rng>
-struct Blizzard final : BlizzardBase {
+using Right = typename GetMoveType<'>'>::type;
+using Left  = typename GetMoveType<'<'>::type;
+using Up    = typename GetMoveType<'^'>::type;
+using Down  = typename GetMoveType<'v'>::type;
+
+template <char Sign, typename Rng = GetMoveType<Sign>::type>
+class Blizzard {
+ public:
   using Cycle     = ranges::cycled_view<Rng>;
-  using CycleIter = decltype(begin((Cycle())));
+  using CycleIter = ranges::iterator_t<Cycle>;
 
-  [[nodiscard]] char get_sign() const noexcept override { return this->sign_; }
-  void move() override { ++this->moving_coor_; }
+ private:
+  [[nodiscard]] auto get_distance() const noexcept { return ranges::distance(begin(this->rng_), this->moving_coor_); }
 
-  [[nodiscard]] Coor get_current_pos() const noexcept override {
+  explicit Blizzard(Rng const& t_moving) : rng_(t_moving | ranges::views::cycle), moving_coor_(begin(rng_)) {}
+
+ public:
+  [[nodiscard]] char get_sign() const noexcept { return Sign; }
+  void move() { ++this->moving_coor_; }
+
+  [[nodiscard]] Coor get_current_pos() const noexcept {
     auto&& [x, y] = *this->moving_coor_;
     return Coor{x, y};
   }
 
-  char sign_;
   Cycle rng_;
   CycleIter moving_coor_;
 
-  Blizzard(char const t_sign, Rng const& t_moving)
-    : sign_{t_sign}, rng_(t_moving | ranges::views::cycle), moving_coor_(begin(rng_)) {}
+  ~Blizzard()                          = default;
+  Blizzard& operator=(const Blizzard&) = delete;
+  Blizzard& operator=(Blizzard&&)      = delete;
+
+  // we only need to copy view, not iterator, iterator will be invalidate once the view is copied to other location
+  // (we can't move t_other.rng_ here, moved object is in unspecified state)
+  Blizzard(Blizzard&& t_other) noexcept : rng_{t_other.rng_}, moving_coor_{begin(rng_) + t_other.get_distance()} {}
+  Blizzard(Blizzard const& t_other) = delete;
+
+  Blizzard(std::vector<std::size_t> const& t_iter, Coor const t_init)
+    : Blizzard(GetMoveType<Sign>::operator()(t_iter, t_init)) {}
 };
+
+using Blizzards = std::tuple<std::vector<Blizzard<'>'>>, std::vector<Blizzard<'<'>>, std::vector<Blizzard<'^'>>,
+                             std::vector<Blizzard<'v'>>>;
 
 struct MapState {
   Coor my_pos_;
@@ -66,45 +93,36 @@ struct MapState {
   bool operator==(MapState const&) const = default;
 };
 
-auto parse_map(std::vector<std::shared_ptr<BlizzardBase>>& blizzards, std::vector<std::string> const& t_map,
-               std::vector<std::size_t> const& t_row, std::vector<std::size_t> const& t_col) {
-  using ranges::views::zip, ranges::views::repeat, ranges::views::cycle, ranges::views::drop, ranges::views::reverse;
-
+auto parse_map(Blizzards& t_blizzards, std::vector<std::string> const& t_map, std::vector<std::size_t> const& t_row,
+               std::vector<std::size_t> const& t_col) {
   Coor init_pos;
   Coor exit_pos;
-
-  blizzards.reserve(t_map.size() * t_map.front().size());
 
   for (std::size_t i = 0; i < t_map.size(); ++i) {
     auto const& row = t_map[i];
     for (std::size_t j = 0; j < row.size(); ++j) {
+      auto const current_coor = Coor(j, i);
       if (char const v = row[j]; v == 'E') [[unlikely]] {
-        init_pos = Coor(j, i);
+        init_pos = current_coor;
       } else if (v != '.' and v != '#') [[likely]] {
         switch (v) {
           case '>':
-            using TRight = decltype(Blizzard{v, zip(cycle(t_row) | drop(j - 1), repeat(i))});
-            blizzards.emplace_back(std::make_shared<TRight>(v, zip(cycle(t_row) | drop(j - 1), repeat(i))));
+            std::get<0>(t_blizzards).emplace_back(t_row, current_coor);
             break;
           case '<':
-            using TLeft = decltype(Blizzard{v, zip(cycle(t_row | reverse) | drop(j - 1), repeat(i))});
-            blizzards.emplace_back(
-              std::make_shared<TLeft>(v, zip(cycle(t_row | reverse) | drop(t_row.size() - j), repeat(i))));
+            std::get<1>(t_blizzards).emplace_back(t_row, current_coor);
             break;
           case '^':
-            using TUp = decltype(Blizzard{v, zip(repeat(j), cycle(t_col | reverse) | drop(i - 1))});
-            blizzards.emplace_back(
-              std::make_shared<TUp>(v, zip(repeat(j), cycle(t_col | reverse) | drop(t_col.size() - i))));
+            std::get<2>(t_blizzards).emplace_back(t_col, current_coor);
             break;
           case 'v':
-            using TDown = decltype(Blizzard{v, zip(repeat(j), cycle(t_col) | drop(i - 1))});
-            blizzards.emplace_back(std::make_shared<TDown>(v, zip(repeat(j), cycle(t_col) | drop(i - 1))));
+            std::get<3>(t_blizzards).emplace_back(t_col, current_coor);
             break;
           default:
             std::unreachable();
         }
       } else if (v == '.' and i + 1 == t_map.size()) {
-        exit_pos = Coor(j, i);
+        exit_pos = current_coor;
       }
     }
   }
@@ -148,7 +166,7 @@ inline constexpr std::array<std::pair<bool (*)(Coor, std::vector<std::string> co
 void print_blizzard(std::vector<std::string> t_map, std::vector<Coor> const& t_blizzards_pos,
                     std::vector<char> const& t_blizzards_dir, std::size_t const t_current_time,
                     Coor const& t_current_pos = {1, 0}) {
-  fmt::print("-- {} minutes ----\n", t_current_time);
+  fmt::println("-- {} minutes ----", t_current_time);
 
   for (std::size_t i = 1; i < t_map.size() - 1; ++i) {
     for (std::size_t j = 1; j < t_map[i].size() - 1; ++j) {
@@ -175,29 +193,51 @@ void print_blizzard(std::vector<std::string> t_map, std::vector<Coor> const& t_b
   t_map[c_y][c_x]   = 'E';
 
   for (auto&& row : t_map) {
-    fmt::print("{}\n", row);
+    fmt::println("{}", row);
   }
 }
 
-auto get_blizzards_dir(std::vector<std::shared_ptr<BlizzardBase>> const& t_blizzards) {
-  using ranges::to_vector, ranges::views::indirect, ranges::views::transform;
-  return t_blizzards | indirect | transform(&BlizzardBase::get_sign) | to_vector;
+auto get_blizzards_dir(Blizzards const& t_blizzards) {
+  auto blizzard_dir_helper = [&]<std::size_t... I>(std::index_sequence<I...>) {
+    using ranges::views::concat, ranges::views::cache1, ranges::to_vector, ranges::views::transform;
+
+    return concat((std::get<I>(t_blizzards)                                                //
+                   | transform(&std::tuple_element_t<I, Blizzards>::value_type::get_sign)  //
+                   | cache1)                                                               //
+                  ...) |
+           to_vector;
+  };
+
+  return blizzard_dir_helper(std::make_index_sequence<std::tuple_size_v<Blizzards>>{});
 }
 
-auto get_blizzards_pos(std::vector<std::shared_ptr<BlizzardBase>> const& t_blizzards) {
-  using ranges::to_vector, ranges::views::indirect, ranges::views::transform;
-  return t_blizzards | indirect | transform(&BlizzardBase::get_current_pos) | to_vector;
+auto get_blizzards_pos(Blizzards const& t_blizzards) {
+  auto blizzard_pos_helper = [&]<std::size_t... I>(std::index_sequence<I...>) {
+    using ranges::views::concat, ranges::to_vector, ranges::views::transform, ranges::views::cache1;
+
+    return concat((std::get<I>(t_blizzards)                                                       //
+                   | transform(&std::tuple_element_t<I, Blizzards>::value_type::get_current_pos)  //
+                   | cache1)                                                                      //
+                  ...) |
+           to_vector;
+  };
+
+  return blizzard_pos_helper(std::make_index_sequence<std::tuple_size_v<Blizzards>>{});
 }
 
-auto move_blizzards(std::vector<std::shared_ptr<BlizzardBase>> const& t_blizzards) {
-  using ranges::for_each, ranges::views::indirect;
-  for_each(t_blizzards | indirect, &BlizzardBase::move);
+auto move_blizzards(Blizzards& t_blizzards) {
+  auto move_helper = [&]<std::size_t... I>(std::index_sequence<I...>) {
+    (std::invoke(ranges::for_each, std::get<I>(t_blizzards), &std::tuple_element_t<I, Blizzards>::value_type::move),
+     ...);
+  };
+
+  move_helper(std::make_index_sequence<std::tuple_size_v<Blizzards>>{});
 }
 
 class MoveSimulator {
   std::vector<std::string> map_;
 
-  std::vector<std::shared_ptr<BlizzardBase>> blizzards_;
+  std::reference_wrapper<Blizzards> blizzards_;
 
   std::size_t cycle_       = 0;
   std::size_t current_min_ = std::numeric_limits<std::size_t>::max();
@@ -222,8 +262,8 @@ class MoveSimulator {
   }
 
  public:
-  MoveSimulator(std::vector<std::string> t_map, std::vector<std::shared_ptr<BlizzardBase>> t_blizzards)
-    : map_{std::move(t_map)}, blizzards_{std::move(t_blizzards)}, blizzard_pos_{get_blizzards_pos(blizzards_)} {}
+  MoveSimulator(std::vector<std::string> t_map, Blizzards& t_blizzards)
+    : map_{std::move(t_map)}, blizzards_{t_blizzards}, blizzard_pos_{get_blizzards_pos(blizzards_)} {}
 
   void reset() noexcept {
     this->current_min_ = std::numeric_limits<std::size_t>::max();
@@ -233,8 +273,7 @@ class MoveSimulator {
   [[nodiscard]] auto get_result() const noexcept { return this->current_min_; }
 
   void simulate(Coor const t_current_pos, Coor const t_exit_pos, std::size_t const t_current_time = 1) {
-    using ranges::views::indirect, ranges::views::transform, ranges::views::filter, ranges::to_vector, ranges::find_if,
-      ranges::actions::sort;
+    using ranges::views::transform, ranges::views::filter, ranges::to_vector, ranges::find_if, ranges::actions::sort;
 
     if (this->blizzard_pos_.size() <= t_current_time and this->cycle_ == 0) {
       // move blizzard first, then decide where we can go
@@ -245,7 +284,7 @@ class MoveSimulator {
         this->blizzard_pos_.emplace_back(std::move(pos));
       } else {
         this->cycle_ = t_current_time;
-        fmt::print("found cycle: {}\n", this->cycle_);
+        fmt::println("found cycle: {}", this->cycle_);
       }
     }
 
@@ -282,14 +321,13 @@ class MoveSimulator {
   }
 };
 
-void debug_blizzard(std::vector<std::string> const& t_map,
-                    std::vector<std::shared_ptr<BlizzardBase>> const& t_blizzards, std::size_t const t_turns) {
-  using ranges::for_each, ranges::views::indirect;
-
+void debug_blizzard(std::vector<std::string> const& t_map, Blizzards& t_blizzards, std::size_t const t_turns) {
   for (std::size_t k = 0; k < t_turns; ++k) {
+    print_blizzard(t_map, get_blizzards_pos(t_blizzards), get_blizzards_dir(t_blizzards), k);
     move_blizzards(t_blizzards);
-    print_blizzard(t_map, get_blizzards_pos(t_blizzards), get_blizzards_dir(t_blizzards), k + 1);
   }
+
+  print_blizzard(t_map, get_blizzards_pos(t_blizzards), get_blizzards_dir(t_blizzards), t_turns);
 }
 
 void part1() {
@@ -298,13 +336,15 @@ void part1() {
   std::fstream in((INPUT_FILE));
   auto rng = getlines(in) | to_vector;
 
-  std::vector<std::shared_ptr<BlizzardBase>> blizzards;
-  auto const row_vector       = iota(1UL, rng.front().size() - 1) | to_vector;
-  auto const col_vector       = iota(1UL, rng.size() - 1) | to_vector;
-  auto&& [init_pos, exit_pos] = parse_map(blizzards, rng, row_vector, col_vector);
+  Blizzards blizzards;
+  auto const row_vector                        = iota(1UL, rng.front().size() - 1) | to_vector;
+  auto const col_vector                        = iota(1UL, rng.size() - 1) | to_vector;
+  [[maybe_unused]] auto&& [init_pos, exit_pos] = parse_map(blizzards, rng, row_vector, col_vector);
 
   MoveSimulator simulator{rng, blizzards};
   simulator.simulate(init_pos, exit_pos);
+
+  fmt::println("init -> exit: {}", simulator.get_result());
 }
 
 void part2() {
@@ -313,7 +353,7 @@ void part2() {
   std::fstream in((INPUT_FILE));
   auto const rng = getlines(in) | to_vector;
 
-  std::vector<std::shared_ptr<BlizzardBase>> blizzards;
+  Blizzards blizzards;
   auto const row_vector       = iota(1UL, rng.front().size() - 1) | to_vector;
   auto const col_vector       = iota(1UL, rng.size() - 1) | to_vector;
   auto&& [init_pos, exit_pos] = parse_map(blizzards, rng, row_vector, col_vector);
@@ -321,21 +361,21 @@ void part2() {
   MoveSimulator simulator{rng, blizzards};
   simulator.simulate(init_pos, exit_pos);
   auto total = simulator.get_result();
-  fmt::print("init -> exit: {}\n", total);
+  fmt::println("init -> exit: {}", total);
   simulator.reset();
 
   simulator.simulate(exit_pos, init_pos, total + 1);
-  fmt::print("exit -> init: {}\n", simulator.get_result());
+  fmt::println("exit -> init: {}", simulator.get_result());
   total = simulator.get_result();
   simulator.reset();
 
   simulator.simulate(init_pos, exit_pos, total + 1);
-  fmt::print("init -> exit: {}\n", simulator.get_result());
+  fmt::println("init -> exit: {}", simulator.get_result());
 }
 
 int main(int /**/, char** /**/) {
-  // part1();
-  part2();
+  part1();
+  // part2();
 
   return EXIT_SUCCESS;
 }

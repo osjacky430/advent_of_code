@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <fmt/format.h>
 #include <fstream>
-// #include <map>
 #include <queue>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/cartesian_product.hpp>
@@ -19,11 +18,15 @@ auto get_neighbor(Coor const& t_coor) {
                     Coor{t_coor.first, t_coor.second + 1}, Coor{t_coor.first, t_coor.second - 1}};
 }
 
-auto bfs(std::vector<std::string> const& t_map, std::vector<Coor> const& t_start, Coor const& t_end) {
+auto default_search_predicate(char const t_neighbor_height, char const t_current_height) {
+  return static_cast<int>(t_neighbor_height - t_current_height) <= 1;
+}
+
+auto bfs(std::vector<std::string> const& t_map, std::vector<Coor> const& t_start, auto&& t_end_predicate,
+         bool (*t_search_predicate)(char, char) = default_search_predicate) {
   // Use std::set<Coor>, where Coor contains pair of int and steps, instead of std::map<Coor, std::size_t>. we don't
   // need to do check if steps to neighbor coordinate is less than previous visitation because in bfs, coor visited
   // previously definitely has less steps than the same one visted later
-  // std::map<Coor, std::size_t> searched;
 
   std::set<Coor> searched;
   std::queue<CoorVisited> search_list;
@@ -31,7 +34,7 @@ auto bfs(std::vector<std::string> const& t_map, std::vector<Coor> const& t_start
     searched.insert(search_list.emplace(start, 0).first);
   }
 
-  while (search_list.front().first != t_end) {
+  while (t_end_predicate(search_list.front().first)) {
     auto const coor_to_visit   = search_list.front();
     auto const [current, step] = coor_to_visit;
 
@@ -51,8 +54,9 @@ auto bfs(std::vector<std::string> const& t_map, std::vector<Coor> const& t_start
 
       auto const x = static_cast<std::size_t>(neighbor_x);
       auto const y = static_cast<std::size_t>(neighbor_y);
-      if (static_cast<int>(t_map[x][y]) - static_cast<int>(height) <= 1) {
-        searched.insert(search_list.emplace(std::pair{neighbor_x, neighbor_y}, step + 1).first);
+      if (t_search_predicate(t_map[x][y], height)) {
+        auto&& coor = search_list.emplace(std::pair{neighbor_x, neighbor_y}, step + 1);
+        searched.insert(coor.first);
       }
     }
   }
@@ -60,7 +64,7 @@ auto bfs(std::vector<std::string> const& t_map, std::vector<Coor> const& t_start
   return search_list.front().second;
 }
 
-auto parse_map(std::fstream& t_in, auto&& t_start_predicate) {
+auto parse_map(std::fstream& t_in, bool (*t_start_predicate)(char&), bool (*t_end_predicate)(char&)) {
   using ranges::getlines, ranges::to_vector, ranges::views::cartesian_product, ranges::views::indices;
 
   auto map = getlines(t_in) | to_vector;
@@ -69,9 +73,8 @@ auto parse_map(std::fstream& t_in, auto&& t_start_predicate) {
   for (auto [i, j] : cartesian_product(indices(map.size()), indices(map[0].size()))) {
     if (t_start_predicate(map[i][j])) {
       start.emplace_back(static_cast<int>(i), static_cast<int>(j));
-    } else if (map[i][j] == 'E') {
-      end       = std::pair{static_cast<int>(i), static_cast<int>(j)};
-      map[i][j] = 'z';
+    } else if (t_end_predicate(map[i][j])) {
+      end = std::pair{static_cast<int>(i), static_cast<int>(j)};
     }
   }
 
@@ -81,16 +84,13 @@ auto parse_map(std::fstream& t_in, auto&& t_start_predicate) {
 void part1() {
   std::fstream in((INPUT_FILE));
 
-  auto const [map, start, end]{parse_map(in, [](auto& t_c) {
-    if (t_c == 'S') {
-      t_c = 'a';
-      return true;
-    }
+  // just for fun, only do this in self learning project
+  constexpr auto start_predicate = [](char& t_c) { return t_c == 'S' ? (t_c = 'a', true) : false; };
+  constexpr auto end_predicate   = [](char& t_c) { return t_c == 'E' ? (t_c = 'z', true) : false; };
 
-    return false;
-  })};
+  auto const [map, start, end]{parse_map(in, start_predicate, end_predicate)};
 
-  fmt::print("min cost: {}\n", bfs(map, start, end));
+  fmt::println("min cost: {}", bfs(map, start, [end](Coor const& t_to_search) { return end != t_to_search; }));
 }
 
 void part2() {
@@ -98,24 +98,45 @@ void part2() {
   //
   //  1. find 'forward', i.e. find minimum steps for all 'a'
   //  2. find 'backward', i.e., BFS starting from 'E' and search for first encountered 'a'
-  using ranges::getlines;
-
   std::fstream in((INPUT_FILE));
 
-  auto const [map, start, end]{parse_map(in, [](auto& t_c) {
-    if (t_c == 'S') {
-      t_c = 'a';
-    }
+  // just for fun, only do this in self learning project
+  constexpr auto start_predicate = [](char& t_c) { return t_c == 'S' ? (t_c = 'a', true) : t_c == 'a'; };
+  constexpr auto end_predicate   = [](char& t_c) { return t_c == 'E' ? (t_c = 'z', true) : false; };
 
-    return t_c == 'a';
-  })};
+  auto const [map, start, end]{parse_map(in, start_predicate, end_predicate)};
 
-  fmt::print("min cost: {}\n", bfs(map, start, end));
+  fmt::println("min cost: {}", bfs(map, start, [end](Coor const& t_to_search) { return end != t_to_search; }));
+}
+
+void part2_backward_find() {
+  std::fstream in((INPUT_FILE));
+
+  // just for fun, only do this in self learning project
+  constexpr auto start_predicate = [](char& t_c) { return t_c == 'E' ? (t_c = 'z', true) : false; };
+
+  // end is not meaningful as we are finding first appeared 'a', we don't need to know how many 'a' there are
+  constexpr auto end_predicate = [](char& t_c) { return t_c == 'S' ? (t_c = 'a', false) : false; };
+
+  auto const [map, start, _]{parse_map(in, start_predicate, end_predicate)};
+
+  auto const continue_search_predicate = [map](Coor const& t_coor) {
+    auto const [x, y] = t_coor;
+    return map[static_cast<std::size_t>(x)][static_cast<std::size_t>(y)] != 'a';
+  };
+
+  constexpr auto valid_neighbor_predicate = [](char const t_neighbor_height, char const t_current_height) {
+    return t_current_height - t_neighbor_height <= 1;
+  };
+
+  fmt::println("backward find algo, min cost: {}",
+               bfs(map, start, continue_search_predicate, valid_neighbor_predicate));
 }
 
 int main(int /**/, char** /**/) {
   part1();
   part2();
+  part2_backward_find();
 
   return EXIT_SUCCESS;
 }

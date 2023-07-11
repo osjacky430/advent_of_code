@@ -54,7 +54,7 @@ void part1_sybrand() {
   auto rng    = getlines(rucksack_item_list) | to_vector;
   auto scores = accumulate(rng | transform(to_score), 0);
 
-  fmt::print("sum priority: {}\n", scores);
+  fmt::println("sum priority: {}", scores);
 }
 
 void part1() {
@@ -76,7 +76,7 @@ void part1() {
   };
 
   auto const sum = accumulate(rng | transform(to_score), 0);
-  fmt::print("sum priority: {}\n", sum);
+  fmt::println("sum priority: {}", sum);
 
   // Original way of finding priority for current rucksack is unreadable IMO. Even though I figure it out pretty fast,
   // this requires way more cognitive load than sybrand's way. I wrote it this way just to avoid raw for loop (and
@@ -126,7 +126,7 @@ void part2() {
     return t_v + get_priority(badge);
   });
 
-  fmt::print("badge sum: {}\n", sum);
+  fmt::println("badge sum: {}", sum);
 }
 
 // time complexity O(m*n*logn) due to introsort
@@ -147,7 +147,7 @@ void part2_sybrand() {
     return t_v + get_priority(badge);
   });
 
-  fmt::print("badge sum: {}\n", score);
+  fmt::println("badge sum: {}", score);
 }
 
 int main(int /*unused*/, char** /*unused*/) {

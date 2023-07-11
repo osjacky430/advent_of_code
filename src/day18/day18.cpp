@@ -1,59 +1,51 @@
-#include "split_helper.hpp"
+#include "pairview.hpp"
+#include "string_util.hpp"
 #include <fmt/format.h>
 #include <fstream>
 #include <functional>
 #include <map>
 #include <queue>
 #include <range/v3/algorithm/count_if.hpp>
-#include <range/v3/algorithm/min.hpp>
 #include <range/v3/algorithm/minmax.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/sliding.hpp>
 #include <range/v3/view/transform.hpp>
 #include <set>
 #include <string>
 #include <vector>
 
-struct Plane {
-  int first;
-  int second;
-
-  auto operator<=>(Plane const&) const = default;
-};
+using Plane = std::pair<int, int>;
 
 struct Cube {
   int x;
   int y;
   int z;
 
-  Plane x_plane() const noexcept { return Plane{this->y, this->z}; }
-  Plane y_plane() const noexcept { return Plane{this->x, this->z}; }
-  Plane z_plane() const noexcept { return Plane{this->x, this->y}; }
+  [[nodiscard]] Plane x_plane() const noexcept { return Plane{this->y, this->z}; }
+  [[nodiscard]] Plane y_plane() const noexcept { return Plane{this->x, this->z}; }
+  [[nodiscard]] Plane z_plane() const noexcept { return Plane{this->x, this->y}; }
 
-  int x_coor() const noexcept { return this->x; }
-  int y_coor() const noexcept { return this->y; }
-  int z_coor() const noexcept { return this->z; }
+  [[nodiscard]] int x_coor() const noexcept { return this->x; }
+  [[nodiscard]] int y_coor() const noexcept { return this->y; }
+  [[nodiscard]] int z_coor() const noexcept { return this->z; }
 
   auto operator<=>(Cube const&) const = default;
 };
 
 auto get_surface_area(std::vector<Cube> const& t_droplets, auto&& t_proj) {
-  using ranges::views::transform, ranges::sort, ranges::count_if, ranges::views::sliding;
+  using ranges::views::transform, ranges::sort, ranges::count_if;
   std::map<Plane, std::vector<int>> projections;
-  for (auto&& droplet : t_droplets) {
-    auto&& [plane, height] = std::invoke(t_proj, droplet);
+  for (auto&& [plane, height] : t_droplets | transform(t_proj)) {
     projections[plane].push_back(height);
   }
 
   auto ret_val = projections.size();  // outer surface
-  for (auto&& [plane, heights] : projections) {
+  for (auto&& [_, heights] : projections) {
     sort(heights);
 
-    auto const concave = count_if(heights | sliding(2), [](auto&& t_rng) {
-      auto const first  = *begin(t_rng);
-      auto const second = *next(begin(t_rng));
+    auto const concave = count_if(heights | ranges::views::pairviewer, [](auto&& t_rng) {
+      auto const [first, second] = t_rng;
       return second - first != 1;
     });
 
@@ -78,7 +70,7 @@ void part1() {
   auto y_dir = get_surface_area(droplets, [](auto&& t_d) { return std::pair{t_d.y_plane(), t_d.y}; });
   auto z_dir = get_surface_area(droplets, [](auto&& t_d) { return std::pair{t_d.z_plane(), t_d.z}; });
 
-  fmt::print("surface area: {}\n", x_dir + y_dir + z_dir);
+  fmt::println("surface area: {}", x_dir + y_dir + z_dir);
 }
 
 auto const get_neighbor = [](Cube const& t_queried) {
@@ -121,7 +113,7 @@ std::set<Cube> flood_fill(std::set<Cube> const& t_droplets) {
 
     for (auto&& neighbor : get_neighbor(curr)) {
       if (not t_droplets.contains(neighbor) and not water.contains(neighbor) and is_in_bound(neighbor)) {
-        bfs.push(std::move(neighbor));
+        bfs.push(neighbor);
       }
     }
   }
@@ -144,7 +136,7 @@ void part2() {
     }
   }
 
-  fmt::print("surface area: {}\n", area);
+  fmt::println("surface area: {}", area);
 }
 
 int main(int /**/, char** /**/) {

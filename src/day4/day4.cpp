@@ -45,7 +45,7 @@ void part1() {
     },
     to_ids);
 
-  fmt::print("fully contain amount: {}\n", amount);
+  fmt::println("fully contain amount: {}", amount);
 }
 
 void part2() {
@@ -65,7 +65,7 @@ void part2() {
     },
     to_ids);
 
-  fmt::print("overlapped amount: {}\n", amount);
+  fmt::println("overlapped amount: {}", amount);
 }
 
 int main(int /*unused*/, char** /*unused*/) {

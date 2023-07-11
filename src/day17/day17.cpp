@@ -13,13 +13,17 @@
 #include <utility>
 #include <vector>
 
+static inline constexpr auto CHAMBER_WIDTH = 7;
+static inline constexpr auto DROP_POINT_X  = 2;  // 0 based index
+static inline constexpr auto DROP_POINT_Y  = 3;
+
 struct Coor {
   long long x = 0;
   long long y = 0;
 
-  Coor left() const noexcept { return Coor{x - 1, y}; }
-  Coor right() const noexcept { return Coor{x + 1, y}; }
-  Coor down() const noexcept { return Coor{x, y - 1}; }
+  [[nodiscard]] Coor left() const noexcept { return Coor{x - 1, y}; }
+  [[nodiscard]] Coor right() const noexcept { return Coor{x + 1, y}; }
+  [[nodiscard]] Coor down() const noexcept { return Coor{x, y - 1}; }
 
   void move_left() noexcept { --x; }
   void move_right() noexcept { ++x; }
@@ -29,7 +33,7 @@ struct Coor {
 struct State {
   std::size_t rock_idx_;
   std::ptrdiff_t jet_idx_;
-  std::array<int, 7> surface_;
+  std::array<int, CHAMBER_WIDTH> surface_;
   long long rock_fell_;
   long long height_;
 
@@ -45,17 +49,26 @@ struct Rock {
 };
 
 struct Chamber {
+  // initial condition, 4 because the "longest" rock has the height of 4, we can shrink this to include only fallable
+  // surface, e.g.
+  //
+  //      [.......]
+  //      [.#...##]
+  //      [###..##]
+  //      [.#####.] <- this layer is not fallable, we can remove this in the content
+  //
+  // however, if we want to see the history, then we need to keep those
   std::vector<std::uint8_t> content_ = std::vector<std::uint8_t>(4, 0);
 
-  auto get_surface() const noexcept {
-    std::array<int, 7> surface{-1, -1, -1, -1, -1, -1, -1};
+  [[nodiscard]] auto get_surface() const noexcept {
+    std::array<int, CHAMBER_WIDTH> surface{-1, -1, -1, -1, -1, -1, -1};
     for (std::size_t j = 0; j < this->content_.size(); ++j) {
-      for (std::size_t i = 0; i < 7; ++i) {
+      for (std::size_t i = 0; i < CHAMBER_WIDTH; ++i) {
         if (surface[i] != -1) {
           continue;
         }
 
-        if (this->content_[this->content_.size() - 1 - j] & (1 << i)) {
+        if ((this->content_[this->content_.size() - 1 - j] & (1UL << i)) != 0) {
           surface[i] = static_cast<int>(j);
         }
       }
@@ -65,14 +78,14 @@ struct Chamber {
 
   bool check_collision(Rock const& t_rock, Coor const t_coor) {
     auto [x, y] = t_coor;
-    if (x > 6 or x < 0 or y < 0) {
+    if (x > CHAMBER_WIDTH - 1 or x < 0 or y < 0) {
       return true;
     }
 
     for (auto&& [rock_x, rock_y] : t_rock.positions_) {
       auto const offset_x = static_cast<std::size_t>(rock_x + x);
       auto const offset_y = static_cast<std::size_t>(rock_y + y);
-      if (offset_x > 6) {
+      if (offset_x > CHAMBER_WIDTH - 1) {
         return true;
       }
 
@@ -80,7 +93,7 @@ struct Chamber {
         break;
       }
 
-      if (this->content_[offset_y] & (1 << offset_x)) {
+      if ((this->content_[offset_y] & (1UL << offset_x)) != 0) {
         return true;
       }
     }
@@ -108,8 +121,8 @@ struct Chamber {
     using ranges::views::reverse;
     for (auto&& row : this->content_ | reverse) {
       debug_txt << '|';
-      for (std::size_t i = 0; i < 7; ++i) {
-        debug_txt << (row & (1 << i) ? '#' : '.');
+      for (std::size_t i = 0; i < CHAMBER_WIDTH; ++i) {
+        debug_txt << ((row & (1UL << i)) != 0 ? '#' : '.');
       }
       debug_txt << "|\n";
     }
@@ -119,6 +132,7 @@ struct Chamber {
 };
 
 std::array const rocks_order{
+  // this can be constexpr, but need to replace vector
   Rock{{{0, 0}, {1, 0}, {2, 0}, {3, 0}}},         Rock{{{1, 0}, {0, 1}, {1, 1}, {2, 1}, {1, 2}}},
   Rock{{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {2, 2}}}, Rock{{{0, 0}, {0, 1}, {0, 2}, {0, 3}}},
   Rock{{{0, 0}, {0, 1}, {1, 0}, {1, 1}}},
@@ -139,7 +153,7 @@ auto rock_falling_sim(std::string const& t_jet_input, long long const t_rock_fel
     auto const jet_idx = distance(begin(jet_input_rng), dir) % static_cast<int>(t_jet_input.size());
     auto const& rock   = rocks_order[idx];
 
-    auto rock_coor = Coor{2, unit_tall + 3};
+    auto rock_coor = Coor{DROP_POINT_X, unit_tall + DROP_POINT_Y};
 
     auto state = State{
       .rock_idx_  = idx,
@@ -192,7 +206,7 @@ void part1() {
   std::fstream in((INPUT_FILE));
   auto rng = getlines(in);
 
-  fmt::print("units tall: {}\n", rock_falling_sim(*begin(rng), 2022));
+  fmt::println("units tall: {}", rock_falling_sim(*begin(rng), 2022));
 }
 
 void part2() {
@@ -201,7 +215,7 @@ void part2() {
   std::fstream in((INPUT_FILE));
   auto rng = getlines(in);
 
-  fmt::print("units tall: {}\n", rock_falling_sim(*begin(rng), 1'000'000'000'000));
+  fmt::println("units tall: {}", rock_falling_sim(*begin(rng), 1'000'000'000'000));
 }
 
 int main(int /**/, char** /**/) {
