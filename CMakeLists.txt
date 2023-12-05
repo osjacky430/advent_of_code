@@ -8,10 +8,6 @@ include(ProjectOption)
 configure_project_option(
   WARNINGS
     TARGET project_warning
-  LINKER
-    TARGET project_option
-    LINKER_NAME mold
-    LINKER_PATH /usr/local/libexec/mold
   SANITIZER
     TARGET project_option
   IPO

@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 7,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 25,
@@ -8,6 +8,7 @@
   "configurePresets": [
     {
       "name": "conan",
+      "binaryDir": "build",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "23",
