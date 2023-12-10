@@ -69,7 +69,6 @@ void part2() {
     auto const game = split_string(t_str, ':');
     auto const sets = split_string(game[1], ';');
 
-    int max_power = 0;
     std::array<int, 3> result{0, 0, 0};
 
     for (auto const& set : sets | transform([](auto const& t_str) { return split_string(t_str, ','); })) {
@@ -94,9 +93,7 @@ void part2() {
       }
     }
 
-    max_power = std::max(max_power, accumulate(result, 1, std::multiplies<>{}));
-
-    return max_power;
+    return accumulate(result, 1, std::multiplies<>{});
   };
 
   fmt::println("power sum: {}", accumulate(rng | transform(get_cubes_power), 0));

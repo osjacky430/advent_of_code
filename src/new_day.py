@@ -9,7 +9,7 @@ PARSER.add_argument('date')
 
 CMAKELIST_TEXT = '''\
 add_executable({date}_{day} {day}.cpp)
-target_link_libraries({date}_{day} PRIVATE advent_of_code_2022 project_option project_warning fmt::fmt)
+target_link_libraries({date}_{day} PRIVATE advent_of_code project_option project_warning fmt::fmt)
 target_compile_definitions({date}_{day} PRIVATE INPUT_FILE="${{CMAKE_CURRENT_SOURCE_DIR}}/{day}.txt")
 '''
 

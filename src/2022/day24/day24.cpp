@@ -1,4 +1,3 @@
-#include <cmath>
 #include <fmt/format.h>
 #include <fstream>
 #include <functional>
@@ -9,7 +8,6 @@
 #include <range/v3/range/access.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view.hpp>
-#include <type_traits>
 #include <utility>
 
 using ranges::views::zip, ranges::views::repeat, ranges::views::cycle, ranges::views::drop, ranges::views::reverse;

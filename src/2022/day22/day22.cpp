@@ -111,7 +111,7 @@ void part1() {
       }
       ptr = std::next(ptr);
     } else if (ec == std::errc()) {
-      ptr = non_matching_pos;
+      ptr = non_matching_pos.data();
     }
 
     move(map, curr_pos, steps, dir, part1_wraparound);
@@ -309,7 +309,7 @@ void part2() {
       }
       ptr = std::next(ptr);
     } else if (ec == std::errc()) {
-      ptr = non_matching_pos;
+      ptr = non_matching_pos.data();
     }
 
     move(map, curr_pos, steps, dir, part2_wraparound);
